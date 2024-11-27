@@ -52,6 +52,7 @@ streamlit run app.py
 
 Built with support from:
 
-    Anthropic's Claude
-    Streamlit
-    Our amazing contributors
+- Our amazing contributors
+- Anthropic's Claude
+- Streamlit
+
