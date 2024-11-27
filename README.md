@@ -46,3 +46,11 @@ pip install -r requirements.txt
 
 # Run the application
 streamlit run app.py
+
+## 🙏 Acknowledgments
+
+Built with support from:
+
+    Anthropic's Claude
+    Streamlit
+    Our amazing contributors
