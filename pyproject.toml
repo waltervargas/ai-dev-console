@@ -14,6 +14,9 @@ requires-python = ">=3.11"
 readme = "README.md"
 license = {text = "MIT"}
 
+[project.scripts]
+ai-prompt = "ai_dev_console_apps.cli.prompt.main:main"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0.0",
@@ -49,7 +52,7 @@ ignore_missing_imports = true
 
 # Add these sections to properly configure the package structure
 [tool.hatch.build.targets.wheel]
-packages = ["src/ai_dev_console"]
+packages = ["src/ai_dev_console", "src/ai_dev_console_apps"]
 
 [tool.hatch.build]
-packages = ["src/ai_dev_console"]
+packages = ["src/ai_dev_console", "src/ai_dev_console_apps"]

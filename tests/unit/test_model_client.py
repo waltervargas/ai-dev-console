@@ -7,7 +7,6 @@ from ai_dev_console.models import (
     ContentBlock,
     InferenceConfiguration,
     ConverseRequest,
-    ConverseResponse,
     ModelClientFactory,
     Role,
     Vendor
@@ -28,10 +27,10 @@ class TestModelClientFactory:
         """
         with patch('anthropic.Anthropic') as mock_anthropic:
             factory = ModelClientFactory()
-            client = factory.create_client(Vendor.ANTHROPIC, api_key="test-key")
+            client = factory.create_client(Vendor.ANTHROPIC)
 
             assert isinstance(client, ModelClient)
-            mock_anthropic.assert_called_once_with(api_key="test-key")
+            mock_anthropic.assert_called_once_with()
 
     def test_creates_aws_client(self):
         """
@@ -44,17 +43,11 @@ class TestModelClientFactory:
             factory = ModelClientFactory()
             client = factory.create_client(
                 Vendor.AWS,
-                aws_access_key_id="test-id",
-                aws_secret_access_key="test-secret",
-                aws_region="eu-central-1"
             )
 
             assert isinstance(client, ModelClient)
             mock_boto3.assert_called_once_with(
                 'bedrock-runtime',
-                aws_access_key_id="test-id",
-                aws_secret_access_key="test-secret",
-                config=ANY
             )
 
 class TestVendorAdapter:
@@ -89,7 +82,7 @@ class TestVendorAdapter:
             ],
             inference_config=InferenceConfiguration(
                 temperature=0.7,
-                max_tokens=1000
+                max_tokens=2000
             )
         )
 
@@ -98,8 +91,8 @@ class TestVendorAdapter:
         assert adapted == {
             "model": "claude-3-haiku-20240307",
             "messages": [{"role": "user", "content": "Hello"}],
-            "max_tokens": 1000,
-            "temperature": 0.7
+            "max_tokens": 2000,
+            "temperature": 0.7,
         }
 
     def test_aws_request_adaptation(self, aws_adapter):

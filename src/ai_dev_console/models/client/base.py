@@ -127,10 +127,6 @@ class ModelClientFactory:
     def create_client(
         self,
         vendor: Vendor,
-        api_key: Optional[str] = None,
-        aws_access_key_id: Optional[str] = None,
-        aws_secret_access_key: Optional[str] = None,
-        aws_region: Optional[str] = None,
         client: Optional[Any] = None
     ) -> ModelClient:
         """
@@ -138,44 +134,29 @@ class ModelClientFactory:
 
         Args:
             vendor: The vendor to create a client for
-            api_key: API key for Anthropic
-            aws_access_key_id: AWS access key ID for Bedrock
-            aws_secret_access_key: AWS secret access key for Bedrock
-            aws_region: AWS region for Bedrock
             client: Optional pre-configured client (useful for testing)
 
         Returns:
             ModelClient instance
 
         Raises:
-            ValueError: If the vendor is not supported or required credentials are missing
+            ValueError: If the vendor is not supported
         """
         if vendor == Vendor.ANTHROPIC:
             if client is not None:
                 return AnthropicClient(client)
-            if not api_key:
-                raise ValueError("API key required for Anthropic client")
-            return AnthropicClient(anthropic.Anthropic(api_key=api_key))
+            return AnthropicClient(anthropic.Anthropic())
 
         elif vendor == Vendor.AWS:
             if client is not None:
                 return AWSClient(client)
 
-            if not all([aws_access_key_id, aws_secret_access_key, aws_region]):
-                raise ValueError("AWS credentials and region required for Bedrock client")
-
-            config = Config(
-                region_name=aws_region,
-                retries={'max_attempts': 3, 'mode': 'standard'}
-            )
-
-            bedrock_client = boto3.client(
-                'bedrock-runtime',
-                aws_access_key_id=aws_access_key_id,
-                aws_secret_access_key=aws_secret_access_key,
-                config=config
-            )
-
+            # AWS SDK will use default credential chain
+            bedrock_client = boto3.client('bedrock-runtime')
             return AWSClient(bedrock_client)
+
+        elif vendor == Vendor.OPENAI:
+            # Future implementation
+            raise NotImplementedError("OpenAI client not yet implemented")
 
         raise ValueError(f"Unsupported vendor: {vendor}")

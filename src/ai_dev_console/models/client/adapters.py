@@ -30,6 +30,7 @@ class AnthropicAdapter(VendorAdapter):
 
     def adapt_request(self, request: ConverseRequest) -> Dict[str, Any]:
         """Convert to Anthropic's format."""
+        # Prepare the base request with required parameters
         adapted = {
             "model": request.model_id,
             "messages": [
@@ -38,21 +39,20 @@ class AnthropicAdapter(VendorAdapter):
                     "content": msg.content[0].text  # Anthropic expects string content
                 }
                 for msg in request.messages
-            ]
+            ],
+            # max_tokens is a required parameter
+            "max_tokens": request.inference_config.max_tokens if request.inference_config else 500
         }
 
+        # Optional parameters - only add if explicitly set
         if request.inference_config:
-            if request.inference_config.max_tokens:
-                adapted["max_tokens"] = request.inference_config.max_tokens
-            if request.inference_config.temperature:
+            # Add temperature if set
+            if request.inference_config.temperature is not None:
                 adapted["temperature"] = request.inference_config.temperature
-            if request.inference_config.top_p:
-                adapted["top_p"] = request.inference_config.top_p
-            if request.inference_config.stop_sequences:
-                adapted["stop_sequences"] = request.inference_config.stop_sequences
 
-        if request.system:
-            adapted["system"] = request.system
+            # Add top_p if explicitly set (not None)
+            if request.inference_config.top_p is not None:
+                adapted["top_p"] = request.inference_config.top_p
 
         return adapted
 
