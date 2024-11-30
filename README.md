@@ -1,10 +1,13 @@
 # ai-dev-console
 
-An interactive development console for AI builders, featuring integrated tools for prompt engineering, model testing, and deployment workflows.
+An interactive development console for AI builders, featuring integrated tools for prompt 
+engineering, model testing, and deployment workflows.
 
 ## 🎯 Purpose
 
-AI Dev Console helps developers, data scientists, and platform engineers streamline their AI development workflow with:
+AI Dev Console helps developers, data scientists, and platform engineers
+streamline their AI development workflow with:
+
 - Interactive model playground
 - Prompt engineering workspace
 - Code generation assistant
@@ -53,4 +56,3 @@ Built with support from:
 - Our amazing contributors
 - Anthropic's Claude
 - Streamlit
-
