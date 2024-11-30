@@ -10,32 +10,40 @@ clear, modular structure.
 
 ```
 ai-dev-console/
-├── src/                   # Source code root (PyPA recommendation)
-│   ├── ai_dev_console/    # Main package (reusable library)
-│   │   ├── models/        # Domain models
-│   │   ├── services/      # Business logic
-│   │   └── config/        # Configuration
-│   └── cmd/               # Command entrypoints
-│       ├── app/           # Streamlit application
-│       └── cli/           # Command-line interface
-├── tests/                 # Test suite
-├── pyproject.toml         # Project metadata and dependencies
-└── README.md              # Project documentation
+├── src/                         # Source code root (PyPA recommendation)
+│   ├── ai_dev_console/          # Main package (reusable library)
+│   │   ├── models/              # Domain models
+│   │   ├── services/            # Business logic
+│   │   └── config/              # Configuration
+│   └── ai_dev_console_apps/     # Command entrypoints
+│       ├── cli/                 # Command-line interface entry points (prompt, debug, etc)
+│       └── gui/                 # Gui apps (streamlit, other)
+├── tests/                       # Test suite
+├── pyproject.toml               # Project metadata and dependencies
+├── CONTRIBUTING.md              # Contribution Guidelines
+└── README.md                    # Project documentation
 ```
 
 ## Practices
 
 1. **Package Design**
 
-   - Keep core package independent
+   - Keep core packages independent
    - Use dependency injection
    - Follow SOLID principles
 
 2. **Testing**
 
-   - Write unit tests for models
-   - Write integration tests for services
-   - Use fixtures for common setup
+   - Use descriptive names for test functions and methods.
+   - Ensure each test is independent; avoid dependencies between tests.
+   - Utilize setup and teardown methods to maintain a consistent test
+     environment.
+   - Design tests to verify a single aspect of the code's behavior.
+   - Follow PEP 8 guidelines for code style within tests.
+   - Aim for comprehensive test coverage, including edge cases.
+   - Use specific assertion methods to validate expected outcomes.
+   - Include docstrings in test functions to describe their purpose.
+   - Tests are written using pytest
 
 3. **Documentation**
 
@@ -72,16 +80,6 @@ pip install -e ".[dev]"
 - [PEP 484](https://peps.python.org/pep-0484/) for type hints
 - Black for code formatting
 - isort for import sorting
-
-### Testing
-
-- Write tests for all new functionality
-- Test behaviour, not functions
-
-```sh
-# Run tests
-pytest
-```
 
 ### Type Checking
 

@@ -25,7 +25,6 @@ dev = [
     "isort>=5.12.0",
 ]
 app = ["streamlit>=1.30.0"]
-cli = ["click>=8.0.0"]
 
 [build-system]
 requires = ["hatchling"]
