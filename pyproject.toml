@@ -34,12 +34,14 @@ build-backend = "hatchling.build"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+include = '\.pyi?$'
+
 [tool.mypy]
 python_version = "3.11"
 strict = true
-plugins = [
-    "pydantic.mypy"
-]
 
 [[tool.mypy.overrides]]
 module = [
