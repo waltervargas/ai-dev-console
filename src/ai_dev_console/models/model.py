@@ -19,7 +19,7 @@ class ModelCosts:
     input_cost_per_million_tokens: Decimal
     output_cost_per_million_tokens: Decimal
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Validate costs are non-negative."""
         if self.input_cost_per_million_tokens < 0:
             raise ValueError("Input cost cannot be negative")
@@ -50,15 +50,11 @@ class ModelCosts:
             + Decimal(output_tokens)
             * self.output_cost_per_million_tokens
             / Decimal(1_000_000)
-        ).quantize(
-            Decimal("0.00001")
-        )  # Round to 5 decimal places for USD
+        ).quantize(Decimal("0.00001"))
 
 
 @dataclass(frozen=True)
 class AIModel:
-    """Represents an AI model with its capabilities and costs."""
-
     name: str
     vendor: Vendor
     costs: ModelCosts
@@ -100,9 +96,7 @@ class ModelMapping:
 
 
 class SupportedModels:
-    """Registry of all supported AI models."""
-
-    def __init__(self):
+    def __init__(self) -> None:
         # Model mappings between vendors
         self._model_mappings = {
             "claude-3-haiku-20240307": ModelMapping(

@@ -30,7 +30,7 @@ class ContentBlock:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert the content block to a dictionary format."""
-        result = {}
+        result: Dict[str, Any] = {}
         if self.text is not None:
             result["text"] = self.text
         if self.image is not None:
@@ -59,12 +59,12 @@ class Message:
 class InferenceConfiguration:
     """Configuration for model inference with sensible, cost-effective defaults."""
 
-    temperature: Optional[float] = None  # No default, only set if explicitly needed
-    top_p: Optional[float] = None  # No default, only set if explicitly needed
-    max_tokens: Optional[int] = 500  # Reasonable default for most queries
+    temperature: Optional[float] = None
+    top_p: Optional[float] = None
+    max_tokens: Optional[int] = 500
     stop_sequences: Optional[List[str]] = None
 
-    def validate(self):
+    def validate(self) -> None:
         """
         Validate inference configuration parameters.
 
@@ -84,22 +84,6 @@ class InferenceConfiguration:
             if self.max_tokens > 8192:  # Most models have a max of 4096
                 raise ValueError("Max tokens cannot exceed 8192")
 
-    def to_dict(self) -> Dict[str, Any]:
-        """
-        Convert configuration to a dictionary,
-        only including explicitly set parameters.
-        """
-        result = {}
-        if self.temperature is not None:
-            result["temperature"] = self.temperature
-        if self.max_tokens is not None:
-            result["max_tokens"] = self.max_tokens
-        if self.top_p is not None:
-            result["top_p"] = self.top_p
-        if self.stop_sequences:
-            result["stop_sequences"] = self.stop_sequences
-        return result
-
 
 @dataclass
 class ConverseRequest:
@@ -115,7 +99,7 @@ class ConverseRequest:
     system: Optional[str] = None
     inference_config: Optional[InferenceConfiguration] = None
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """
         Automatically apply default inference configuration
         if not explicitly provided.
@@ -152,7 +136,7 @@ class ConverseRequest:
 
         return message_tokens + system_tokens
 
-    def validate(self):
+    def validate(self) -> None:
         """
         Validate the entire request, including messages and configuration.
 
