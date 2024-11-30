@@ -5,6 +5,7 @@ from typing import Dict, Optional
 
 from .vendor import Vendor
 
+
 @dataclass(frozen=True)
 class ModelCosts:
     """
@@ -14,6 +15,7 @@ class ModelCosts:
         input_cost_per_million_tokens (Decimal): Cost in USD per million input tokens
         output_cost_per_million_tokens (Decimal): Cost in USD per million output tokens
     """
+
     input_cost_per_million_tokens: Decimal
     output_cost_per_million_tokens: Decimal
 
@@ -42,13 +44,21 @@ class ModelCosts:
             raise ValueError("Token counts cannot be negative")
 
         return (
-            Decimal(input_tokens) * self.input_cost_per_million_tokens / Decimal(1_000_000) +
-            Decimal(output_tokens) * self.output_cost_per_million_tokens / Decimal(1_000_000)
-        ).quantize(Decimal('0.00001'))  # Round to 5 decimal places for USD
+            Decimal(input_tokens)
+            * self.input_cost_per_million_tokens
+            / Decimal(1_000_000)
+            + Decimal(output_tokens)
+            * self.output_cost_per_million_tokens
+            / Decimal(1_000_000)
+        ).quantize(
+            Decimal("0.00001")
+        )  # Round to 5 decimal places for USD
+
 
 @dataclass(frozen=True)
 class AIModel:
     """Represents an AI model with its capabilities and costs."""
+
     name: str
     vendor: Vendor
     costs: ModelCosts
@@ -69,7 +79,7 @@ class AIModel:
             vendor=Vendor.ANTHROPIC,
             costs=ModelCosts(
                 input_cost_per_million_tokens=Decimal("0.25"),
-                output_cost_per_million_tokens=Decimal("1.25")
+                output_cost_per_million_tokens=Decimal("1.25"),
             ),
             context_window=200000,
             max_output_tokens=4096,
@@ -77,17 +87,21 @@ class AIModel:
             supports_message_batches=True,
             training_cutoff=datetime(2023, 8, 1),
             description="Fastest and most compact model for near-instant responsiveness",
-            comparative_latency="Fastest"
+            comparative_latency="Fastest",
         )
+
 
 @dataclass
 class ModelMapping:
     """Maps between canonical model names and vendor-specific identifiers."""
+
     canonical_name: str
     vendor_ids: Dict[Vendor, str]
 
+
 class SupportedModels:
     """Registry of all supported AI models."""
+
     def __init__(self):
         # Model mappings between vendors
         self._model_mappings = {
@@ -95,15 +109,15 @@ class SupportedModels:
                 canonical_name="claude-3-haiku-20240307",
                 vendor_ids={
                     Vendor.ANTHROPIC: "claude-3-haiku-20240307",
-                    Vendor.AWS: "anthropic.claude-3-haiku-20240307-v1:0"
-                }
+                    Vendor.AWS: "anthropic.claude-3-haiku-20240307-v1:0",
+                },
             ),
             "claude-3-5-sonnet-20241022": ModelMapping(
                 canonical_name="claude-3-5-sonnet-20241022",
                 vendor_ids={
                     Vendor.ANTHROPIC: "claude-3-5-sonnet-20241022",
-                    Vendor.AWS: "anthropic.claude-3-5-sonnet-20240620-v1:0"
-                }
+                    Vendor.AWS: "anthropic.claude-3-5-sonnet-20240620-v1:0",
+                },
             ),
             # Add other mappings as needed
         }
@@ -115,7 +129,7 @@ class SupportedModels:
                 vendor=Vendor.ANTHROPIC,
                 costs=ModelCosts(
                     input_cost_per_million_tokens=Decimal("3.0"),
-                    output_cost_per_million_tokens=Decimal("15.0")
+                    output_cost_per_million_tokens=Decimal("15.0"),
                 ),
                 context_window=200000,
                 max_output_tokens=8192,
@@ -123,14 +137,14 @@ class SupportedModels:
                 supports_message_batches=True,
                 training_cutoff=datetime(2024, 4, 1),
                 description="Our most intelligent model",
-                comparative_latency="Fast"
+                comparative_latency="Fast",
             ),
             "claude-3-5-haiku-20241022": AIModel(
                 name="claude-3-5-haiku-20241022",
                 vendor=Vendor.ANTHROPIC,
                 costs=ModelCosts(
                     input_cost_per_million_tokens=Decimal("1.0"),
-                    output_cost_per_million_tokens=Decimal("5.0")
+                    output_cost_per_million_tokens=Decimal("5.0"),
                 ),
                 context_window=200000,
                 max_output_tokens=8192,
@@ -138,9 +152,9 @@ class SupportedModels:
                 supports_message_batches=True,
                 training_cutoff=datetime(2024, 7, 1),
                 description="Our fastest model",
-                comparative_latency="Fastest"
+                comparative_latency="Fastest",
             ),
-            "claude-3-haiku-20240307": AIModel.claude_3_haiku()
+            "claude-3-haiku-20240307": AIModel.claude_3_haiku(),
         }
 
     def get_model(self, model_name: str) -> AIModel:

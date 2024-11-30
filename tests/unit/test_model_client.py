@@ -9,9 +9,10 @@ from ai_dev_console.models import (
     ConverseRequest,
     ModelClientFactory,
     Role,
-    Vendor
+    Vendor,
 )
 from ai_dev_console.models.client.adapters import VendorAdapter
+
 
 class TestModelClientFactory:
     """
@@ -25,7 +26,7 @@ class TestModelClientFactory:
         When creating a client for Anthropic
         Then they should get a properly configured client
         """
-        with patch('anthropic.Anthropic') as mock_anthropic:
+        with patch("anthropic.Anthropic") as mock_anthropic:
             factory = ModelClientFactory()
             client = factory.create_client(Vendor.ANTHROPIC)
 
@@ -39,7 +40,7 @@ class TestModelClientFactory:
         When creating a client for AWS
         Then they should get a properly configured client
         """
-        with patch('boto3.client') as mock_boto3:
+        with patch("boto3.client") as mock_boto3:
             factory = ModelClientFactory()
             client = factory.create_client(
                 Vendor.AWS,
@@ -47,8 +48,9 @@ class TestModelClientFactory:
 
             assert isinstance(client, ModelClient)
             mock_boto3.assert_called_once_with(
-                'bedrock-runtime',
+                "bedrock-runtime",
             )
+
 
 class TestVendorAdapter:
     """
@@ -74,16 +76,8 @@ class TestVendorAdapter:
         """
         request = ConverseRequest(
             model_id="claude-3-haiku-20240307",
-            messages=[
-                Message(
-                    role=Role.USER,
-                    content=[ContentBlock(text="Hello")]
-                )
-            ],
-            inference_config=InferenceConfiguration(
-                temperature=0.7,
-                max_tokens=2000
-            )
+            messages=[Message(role=Role.USER, content=[ContentBlock(text="Hello")])],
+            inference_config=InferenceConfiguration(temperature=0.7, max_tokens=2000),
         )
 
         adapted = anthropic_adapter.adapt_request(request)
@@ -104,32 +98,19 @@ class TestVendorAdapter:
         """
         request = ConverseRequest(
             model_id="anthropic.claude-3-haiku-20240307",
-            messages=[
-                Message(
-                    role=Role.USER,
-                    content=[ContentBlock(text="Hello")]
-                )
-            ],
+            messages=[Message(role=Role.USER, content=[ContentBlock(text="Hello")])],
             inference_config=InferenceConfiguration(
                 temperature=0.7,
                 max_tokens=1000,
                 top_p=None,  # Explicitly set to None
-                stop_sequences=None  # Explicitly set to None
-            )
+                stop_sequences=None,  # Explicitly set to None
+            ),
         )
 
         adapted = aws_adapter.adapt_request(request)
 
         assert adapted == {
             "modelId": "anthropic.claude-3-haiku-20240307",
-            "messages": [
-                {
-                    "role": "user",
-                    "content": [{"text": "Hello"}]
-                }
-            ],
-            "inferenceConfig": {
-                "temperature": 0.7,
-                "maxTokens": 1000
-            }
+            "messages": [{"role": "user", "content": [{"text": "Hello"}]}],
+            "inferenceConfig": {"temperature": 0.7, "maxTokens": 1000},
         }

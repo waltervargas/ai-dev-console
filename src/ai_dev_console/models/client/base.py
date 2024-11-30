@@ -8,6 +8,7 @@ from .adapters import VendorAdapter
 from ..vendor import Vendor
 from ..exceptions import ModelClientError
 
+
 class ModelClient(ABC):
     """Abstract base class for model clients."""
 
@@ -25,6 +26,7 @@ class ModelClient(ABC):
     def converse(self, request: ConverseRequest) -> ConverseResponse:
         """Synchronously send a conversation request to the model."""
         pass
+
 
 class AnthropicClient(ModelClient):
     """Client implementation for Anthropic's API."""
@@ -77,10 +79,11 @@ class AnthropicClient(ModelClient):
         except Exception as e:
             raise ModelClientError(f"Failed to process async request: {str(e)}") from e
 
+
 class AWSClient(ModelClient):
     """Client implementation for AWS Bedrock's API."""
 
-    def __init__(self, client: 'boto3.client'):
+    def __init__(self, client: "boto3.client"):
         """Initialize the Bedrock client."""
         super().__init__(Vendor.AWS, VendorAdapter.create(Vendor.AWS))
         self.client = client
@@ -121,13 +124,12 @@ class AWSClient(ModelClient):
         """
         raise NotImplementedError("Async operations not supported for Bedrock")
 
+
 class ModelClientFactory:
     """Factory for creating model clients."""
 
     def create_client(
-        self,
-        vendor: Vendor,
-        client: Optional[Any] = None
+        self, vendor: Vendor, client: Optional[Any] = None
     ) -> ModelClient:
         """
         Create a model client for the specified vendor.
@@ -152,7 +154,7 @@ class ModelClientFactory:
                 return AWSClient(client)
 
             # AWS SDK will use default credential chain
-            bedrock_client = boto3.client('bedrock-runtime')
+            bedrock_client = boto3.client("bedrock-runtime")
             return AWSClient(bedrock_client)
 
         elif vendor == Vendor.OPENAI:

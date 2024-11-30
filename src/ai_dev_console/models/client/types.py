@@ -3,21 +3,27 @@ from enum import Enum
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime
 
+
 class ContentType(Enum):
     """Types of content that can be sent or received."""
+
     TEXT = "text"
     IMAGE = "image"
     DOCUMENT = "document"
 
+
 class Role(Enum):
     """Roles in a conversation."""
+
     USER = "user"
     ASSISTANT = "assistant"
     SYSTEM = "system"
 
+
 @dataclass
 class ContentBlock:
     """Represents a block of content in a message."""
+
     text: Optional[str] = None
     image: Optional[Dict[str, Any]] = None
     document: Optional[Dict[str, Any]] = None
@@ -33,9 +39,11 @@ class ContentBlock:
             result["document"] = self.document
         return result
 
+
 @dataclass
 class Message:
     """Represents a message in a conversation."""
+
     role: Role
     content: List[ContentBlock]
 
@@ -43,12 +51,14 @@ class Message:
         """Convert the message to a dictionary format."""
         return {
             "role": self.role.value,
-            "content": [block.to_dict() for block in self.content]
+            "content": [block.to_dict() for block in self.content],
         }
+
 
 @dataclass
 class InferenceConfiguration:
     """Configuration for model inference with sensible, cost-effective defaults."""
+
     temperature: Optional[float] = None  # No default, only set if explicitly needed
     top_p: Optional[float] = None  # No default, only set if explicitly needed
     max_tokens: Optional[int] = 500  # Reasonable default for most queries
@@ -76,7 +86,7 @@ class InferenceConfiguration:
 
     def to_dict(self) -> Dict[str, Any]:
         """
-        Convert configuration to a dictionary, 
+        Convert configuration to a dictionary,
         only including explicitly set parameters.
         """
         result = {}
@@ -96,9 +106,10 @@ class ConverseRequest:
     """
     Request for model conversation with intelligent defaults.
 
-    Provides a flexible interface for sending prompts to AI models 
+    Provides a flexible interface for sending prompts to AI models
     with cost-effective and sensible default configurations.
     """
+
     model_id: str
     messages: List[Message]
     system: Optional[str] = None
@@ -106,7 +117,7 @@ class ConverseRequest:
 
     def __post_init__(self):
         """
-        Automatically apply default inference configuration 
+        Automatically apply default inference configuration
         if not explicitly provided.
         """
         if self.inference_config is None:
@@ -125,16 +136,14 @@ class ConverseRequest:
         Returns:
             Estimated number of tokens in the request
         """
+
         def count_tokens(text: str) -> int:
             """Count tokens in a given text."""
             return max(1, len(text) // 6)  # Conservative token estimation
 
         # Count tokens in messages
         message_tokens = sum(
-            count_tokens(' '.join(
-                block.text or '' 
-                for block in message.content
-            )) 
+            count_tokens(" ".join(block.text or "" for block in message.content))
             for message in self.messages
         )
 
@@ -165,21 +174,23 @@ class ConverseRequest:
         if self.inference_config:
             self.inference_config.validate()
 
+
 @dataclass
 class ConverseResponse:
     """Response from model conversation."""
+
     messages: List[Message]
     stop_reason: Optional[str] = None
     usage: Optional[Dict[str, int]] = None
     metrics: Optional[Dict[str, Any]] = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'ConverseResponse':
+    def from_dict(cls, data: Dict[str, Any]) -> "ConverseResponse":
         """Create a response from a dictionary format."""
         messages = [
             Message(
                 role=Role(msg["role"]),
-                content=[ContentBlock(**block) for block in msg["content"]]
+                content=[ContentBlock(**block) for block in msg["content"]],
             )
             for msg in data["messages"]
         ]
@@ -187,5 +198,5 @@ class ConverseResponse:
             messages=messages,
             stop_reason=data.get("stop_reason"),
             usage=data.get("usage"),
-            metrics=data.get("metrics")
+            metrics=data.get("metrics"),
         )
