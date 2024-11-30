@@ -135,3 +135,37 @@ class TestModelSelectionScenarios:
         """
         with pytest.raises(ValueError, match="Model 'invalid-model' not found"):
             supported_models.get_model("invalid-model")
+
+    def test_model_vendor_id_resolution(self):
+        """
+        Story: A developer wants to use models across different vendors
+        Given a model identifier
+        When resolving it for a specific vendor
+        Then the correct vendor-specific ID is returned
+        """
+        models = SupportedModels()
+
+        # Test canonical name to AWS ID
+        aws_id = models.resolve_model_id("claude-3-haiku-20240307", Vendor.AWS)
+        assert aws_id == "anthropic.claude-3-haiku-20240307-v1:0"
+
+        # Test canonical name to Anthropic ID
+        anthropic_id = models.resolve_model_id("claude-3-haiku-20240307", Vendor.ANTHROPIC)
+        assert anthropic_id == "claude-3-haiku-20240307"
+
+        # Test direct vendor ID passthrough
+        direct_id = models.resolve_model_id("anthropic.claude-3-haiku-20240307-v1:0", Vendor.AWS)
+        assert direct_id == "anthropic.claude-3-haiku-20240307-v1:0"
+
+    def test_unknown_model_resolution(self):
+        """
+        Story: A developer uses an unknown model identifier
+        Given an unknown model ID
+        When resolving it
+        Then the original ID is returned unchanged
+        """
+        models = SupportedModels()
+
+        unknown_id = "unknown-model"
+        resolved_id = models.resolve_model_id(unknown_id, Vendor.AWS)
+        assert resolved_id == unknown_id    

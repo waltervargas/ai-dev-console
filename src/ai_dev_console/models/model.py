@@ -59,6 +59,7 @@ class AIModel:
     training_cutoff: datetime
     description: str
     comparative_latency: str
+    vendor_model_id: Optional[str] = None  # Added to support vendor-specific IDs
 
     @classmethod
     def claude_3_haiku(cls) -> "AIModel":
@@ -79,9 +80,35 @@ class AIModel:
             comparative_latency="Fastest"
         )
 
+@dataclass
+class ModelMapping:
+    """Maps between canonical model names and vendor-specific identifiers."""
+    canonical_name: str
+    vendor_ids: Dict[Vendor, str]
+
 class SupportedModels:
     """Registry of all supported AI models."""
     def __init__(self):
+        # Model mappings between vendors
+        self._model_mappings = {
+            "claude-3-haiku-20240307": ModelMapping(
+                canonical_name="claude-3-haiku-20240307",
+                vendor_ids={
+                    Vendor.ANTHROPIC: "claude-3-haiku-20240307",
+                    Vendor.AWS: "anthropic.claude-3-haiku-20240307-v1:0"
+                }
+            ),
+            "claude-3-5-sonnet-20241022": ModelMapping(
+                canonical_name="claude-3-5-sonnet-20241022",
+                vendor_ids={
+                    Vendor.ANTHROPIC: "claude-3-5-sonnet-20241022",
+                    Vendor.AWS: "anthropic.claude-3-5-sonnet-20240620-v1:0"
+                }
+            ),
+            # Add other mappings as needed
+        }
+
+        # Initialize available models
         self.available_models: Dict[str, AIModel] = {
             "claude-3-5-sonnet-20241022": AIModel(
                 name="claude-3-5-sonnet-20241022",
@@ -122,5 +149,48 @@ class SupportedModels:
             raise ValueError(f"Model '{model_name}' not found")
         return self.available_models[model_name]
 
+    def get_vendor_model_id(self, model_name: str, vendor: Vendor) -> str:
+        """
+        Get the vendor-specific model identifier.
 
+        Args:
+            model_name (str): The canonical model name
+            vendor (Vendor): The target vendor
 
+        Returns:
+            str: The vendor-specific model identifier
+
+        Raises:
+            ValueError: If the model or vendor mapping is not found
+        """
+        # Check if we have a mapping for this model
+        mapping = self._model_mappings.get(model_name)
+        if mapping and vendor in mapping.vendor_ids:
+            return mapping.vendor_ids[vendor]
+
+        # If no mapping found, return the original name
+        # This allows for direct use of vendor-specific IDs
+        return model_name
+
+    def resolve_model_id(self, model_id: str, vendor: Vendor) -> str:
+        """
+        Resolve a model identifier to its vendor-specific form.
+
+        This method handles both canonical names and vendor-specific IDs.
+
+        Args:
+            model_id (str): The model identifier to resolve
+            vendor (Vendor): The target vendor
+
+        Returns:
+            str: The vendor-specific model identifier
+        """
+        # First try to get a vendor-specific ID
+        vendor_id = self.get_vendor_model_id(model_id, vendor)
+
+        # If we got back the same ID and it's not in our mappings,
+        # it's probably already a vendor-specific ID
+        if vendor_id == model_id and model_id not in self._model_mappings:
+            return model_id
+
+        return vendor_id

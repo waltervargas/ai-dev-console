@@ -1,6 +1,7 @@
 import sys
 import argparse
 from typing import Optional, List
+import os
 
 from ai_dev_console.models import (
     Message,
@@ -82,7 +83,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         args = parse_arguments(argv)
 
         # Read prompt from stdin
-        prompt = sys.stdin.read().strip()
+        prompt = os.getenv('DEBUG_INPUT') or sys.stdin.read().strip()
         if not prompt:
             print("Error: No input provided", file=sys.stderr)
             return 1
