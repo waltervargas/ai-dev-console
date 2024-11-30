@@ -1,5 +1,49 @@
 """Models package."""
-from .model import AIModel, ModelCosts, SupportedModels
+from .exceptions import (
+    ModelClientError,
+    ModelValidationError,
+    ModelRequestError,
+    ModelResponseError
+)
+
 from .vendor import Vendor
 
-__all__ = ['AIModel', 'ModelCosts', 'SupportedModels', 'Vendor']
+from .model import (
+    AIModel,
+    ModelCosts,
+    SupportedModels
+)
+
+from .client import (
+    ModelClient,
+    AnthropicClient,
+    AWSClient,
+    ModelClientFactory,
+    Message,
+    ContentBlock,
+    InferenceConfiguration,
+    ConverseRequest,
+    ConverseResponse,
+    Role
+)
+
+__all__ = [
+    'AIModel',
+    'ModelCosts',
+    'SupportedModels',
+    'ModelClientError',
+    'ModelValidationError',
+    'ModelRequestError',
+    'ModelResponseError',
+    'Vendor',
+    'ModelClient',
+    'AnthropicClient',
+    'AWSClient',
+    'ModelClientFactory',
+    'Message',
+    'ContentBlock',
+    'InferenceConfiguration',
+    'ConverseRequest',
+    'ConverseResponse',
+    'Role'
+]

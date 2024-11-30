@@ -35,6 +35,17 @@ python_files = ["test_*.py"]
 [tool.mypy]
 python_version = "3.11"
 strict = true
+plugins = [
+    "pydantic.mypy"
+]
+
+[[tool.mypy.overrides]]
+module = [
+    "anthropic.*",
+    "boto3.*",
+    "botocore.*"
+]
+ignore_missing_imports = true
 
 # Add these sections to properly configure the package structure
 [tool.hatch.build.targets.wheel]
