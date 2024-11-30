@@ -1,9 +1,7 @@
 # ai-dev-console
 
-# AI Dev Console
-
-An interactive development console for AI builders, featuring integrated tools
-for prompt engineering, model testing, and deployment workflows.
+An interactive development console for AI builders, featuring integrated tools for prompt 
+engineering, model testing, and deployment workflows.
 
 ## 🎯 Purpose
 
@@ -50,3 +48,11 @@ pip install -r requirements.txt
 # Run the application
 streamlit run app.py
 ```
+
+## 🙏 Acknowledgments
+
+Built with support from:
+
+- Our amazing contributors
+- Anthropic's Claude
+- Streamlit
