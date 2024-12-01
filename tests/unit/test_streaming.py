@@ -14,6 +14,7 @@ from ai_dev_console.models import (
     ModelClientError,
 )
 
+
 class TestModelClientStreaming:
     """
     Test suite for model client streaming capabilities.
@@ -22,6 +23,7 @@ class TestModelClientStreaming:
     @pytest.fixture
     def mock_anthropic_stream(self):
         """Provides a mock Anthropic stream."""
+
         class MockStream:
             def __init__(self):
                 self.text_stream = ["Hello", " World", "!"]
@@ -34,6 +36,7 @@ class TestModelClientStreaming:
     @pytest.fixture
     def mock_anthropic_messages(self, mock_anthropic_stream):
         """Provides a mock Anthropic messages interface."""
+
         class MockMessages:
             @contextmanager
             def stream(self, **kwargs):
@@ -53,16 +56,8 @@ class TestModelClientStreaming:
         """Provides a test request."""
         return ConverseRequest(
             model_id="claude-3-haiku-20240307",
-            messages=[
-                Message(
-                    role=Role.USER,
-                    content=[ContentBlock(text="Hello")]
-                )
-            ],
-            inference_config=InferenceConfiguration(
-                temperature=0.7,
-                max_tokens=1000
-            )
+            messages=[Message(role=Role.USER, content=[ContentBlock(text="Hello")])],
+            inference_config=InferenceConfiguration(temperature=0.7, max_tokens=1000),
         )
 
     def test_anthropic_streaming_success(self, mock_anthropic_client, test_request):
@@ -91,8 +86,7 @@ class TestModelClientStreaming:
 
         client = AnthropicClient(mock_anthropic_client)
         invalid_request = ConverseRequest(
-            model_id="",  # Invalid empty model ID
-            messages=[]   # Invalid empty messages
+            model_id="", messages=[]  # Invalid empty model ID  # Invalid empty messages
         )
 
         with pytest.raises(ModelClientError) as exc_info:
@@ -119,9 +113,11 @@ class TestModelClientStreaming:
                 return {"role": "assistant", "content": "Hello World!"}
 
         mock_anthropic_client.messages.stream = Mock()
+
         @contextmanager
         def mock_stream(**kwargs):
             yield MockStreamWithEmpty()
+
         mock_anthropic_client.messages.stream.side_effect = mock_stream
 
         client = AnthropicClient(mock_anthropic_client)
@@ -137,9 +133,13 @@ class TestModelClientStreaming:
         When attempting to stream
         Then it should raise NotImplementedError
         """
+
         class TestClient(ModelClient):
-            def converse(self, request): pass
-            async def converse_async(self, request): pass
+            def converse(self, request):
+                pass
+
+            async def converse_async(self, request):
+                pass
 
         client = TestClient(Vendor.ANTHROPIC, Mock())
 
@@ -162,7 +162,9 @@ class TestModelClientStreaming:
             with client.stream_response(test_request):
                 pass
 
-    def test_anthropic_streaming_error_handling(self, mock_anthropic_client, test_request):
+    def test_anthropic_streaming_error_handling(
+        self, mock_anthropic_client, test_request
+    ):
         """
         Story: The system should handle streaming errors gracefully
         Given a failing stream
