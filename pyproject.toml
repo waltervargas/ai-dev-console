@@ -3,7 +3,7 @@ name = "ai-dev-console"
 version = "0.1.0"
 description = "An interactive development console for AI builders"
 authors = [
-    {name = "Your Name", email = "your.email@example.com"},
+    {name = "Walter Vargas", email = "w@walter.bio"},
 ]
 dependencies = [
     "anthropic>=0.18.1",
@@ -16,6 +16,7 @@ license = {text = "MIT"}
 
 [project.scripts]
 ai-prompt = "ai_dev_console_apps.cli.prompt.main:main"
+ai-dev-console = "ai_dev_console_apps.gui.ai_dev_console.main:main"
 
 [project.optional-dependencies]
 dev = [
