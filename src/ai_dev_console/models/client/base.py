@@ -1,4 +1,5 @@
-from typing import Dict, Any, Optional
+from contextlib import contextmanager
+from typing import Dict, Any, Iterator, Optional
 from abc import ABC, abstractmethod
 import anthropic
 import boto3
@@ -26,6 +27,19 @@ class ModelClient(ABC):
     def converse(self, request: ConverseRequest) -> ConverseResponse:
         """Synchronously send a conversation request to the model."""
         pass
+
+    @contextmanager
+    def stream_response(self, request: ConverseRequest) -> Iterator[str]:
+        """
+        Stream model responses.
+
+        Args:
+            request: The conversation request
+
+        Yields:
+            Iterator[str]: Stream of response chunks
+        """
+        raise NotImplementedError("Streaming not supported")
 
 
 class AnthropicClient(ModelClient):
@@ -78,6 +92,25 @@ class AnthropicClient(ModelClient):
                 return self.adapter.adapt_response(response.model_dump())
         except Exception as e:
             raise ModelClientError(f"Failed to process async request: {str(e)}") from e
+
+    @contextmanager
+    def stream_response(self, request: ConverseRequest) -> Iterator[Iterator[str]]:
+        """Stream response from Anthropic's API."""
+        try:
+            request.validate()
+            adapted_request = self.adapter.adapt_request(request)
+
+            with self.client.messages.stream(**adapted_request) as stream:
+
+                def generate():
+                    for chunk in stream.text_stream:
+                        if chunk:
+                            yield chunk
+
+                yield generate()
+
+        except Exception as e:
+            raise ModelClientError(f"Streaming failed: {str(e)}")
 
 
 class AWSClient(ModelClient):
