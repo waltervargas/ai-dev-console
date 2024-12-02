@@ -149,6 +149,21 @@ class SupportedModels:
                 comparative_latency="Fastest",
             ),
             "claude-3-haiku-20240307": AIModel.claude_3_haiku(),
+            "claude-3-5-haiku-20241022": AIModel(
+                name="claude-3-5-haiku-20241022",
+                vendor=Vendor.AWS,
+                costs=ModelCosts(
+                    input_cost_per_million_tokens=Decimal("1.0"),
+                    output_cost_per_million_tokens=Decimal("5.0"),
+                ),
+                context_window=200000,
+                max_output_tokens=8192,
+                supports_vision=False,
+                supports_message_batches=True,
+                training_cutoff=datetime(2024, 7, 1),
+                description="Our fastest model",
+                comparative_latency="Fastest",
+            ),
         }
 
     def get_model(self, model_name: str) -> AIModel:
@@ -171,14 +186,23 @@ class SupportedModels:
         Raises:
             ValueError: If the model or vendor mapping is not found
         """
-        # Check if we have a mapping for this model
+        # Always check the mapping first
         mapping = self._model_mappings.get(model_name)
-        if mapping and vendor in mapping.vendor_ids:
-            return mapping.vendor_ids[vendor]
+        if mapping:
+            if vendor in mapping.vendor_ids:
+                return mapping.vendor_ids[vendor]
+            raise ValueError(
+                f"Model '{model_name}' not supported for vendor {vendor.value}"
+            )
 
-        # If no mapping found, return the original name
-        # This allows for direct use of vendor-specific IDs
-        return model_name
+        # If no mapping exists, check if it's a valid model for the requested vendor
+        model = self.available_models.get(model_name)
+        if model and model.vendor == vendor:
+            return model_name
+
+        raise ValueError(
+            f"No mapping found for model '{model_name}' and vendor {vendor.value}"
+        )
 
     def resolve_model_id(self, model_id: str, vendor: Vendor) -> str:
         """
@@ -193,12 +217,4 @@ class SupportedModels:
         Returns:
             str: The vendor-specific model identifier
         """
-        # First try to get a vendor-specific ID
-        vendor_id = self.get_vendor_model_id(model_id, vendor)
-
-        # If we got back the same ID and it's not in our mappings,
-        # it's probably already a vendor-specific ID
-        if vendor_id == model_id and model_id not in self._model_mappings:
-            return model_id
-
-        return vendor_id
+        return self.get_vendor_model_id(model_id, vendor)

@@ -157,6 +157,64 @@ class AWSClient(ModelClient):
         """
         raise NotImplementedError("Async operations not supported for Bedrock")
 
+    @contextmanager
+    def stream_response(self, request: ConverseRequest) -> Iterator[Iterator[str]]:
+        """
+        Stream response from AWS Bedrock API.
+
+        Args:
+            request: The conversation request
+
+        Yields:
+            Iterator[str]: Stream of response chunks
+
+        Raises:
+            ModelClientError: If streaming fails
+        """
+        try:
+            request.validate()
+            adapted_request = self.adapter.adapt_request(request)
+
+            # Get the stream response
+            response = self.client.converse_stream(**adapted_request)
+
+            def generate() -> Iterator[str]:
+                current_role = None
+
+                for event in response["stream"]:
+                    # Handle message start
+                    if "messageStart" in event:
+                        current_role = event["messageStart"]["role"]
+                        continue
+
+                    # Only process assistant responses
+                    if current_role != "assistant":
+                        continue
+
+                    # Handle content deltas (actual text chunks)
+                    if "contentBlockDelta" in event:
+                        delta = event["contentBlockDelta"]["delta"]
+                        if "text" in delta and delta["text"]:
+                            yield delta["text"]
+
+                    # Handle errors
+                    for error_type in [
+                        "internalServerException",
+                        "modelStreamErrorException",
+                        "validationException",
+                        "throttlingException",
+                        "serviceUnavailableException",
+                    ]:
+                        if error_type in event:
+                            raise ModelClientError(
+                                f"AWS Bedrock error: {event[error_type]['message']}"
+                            )
+
+            yield generate()
+
+        except Exception as e:
+            raise ModelClientError(f"Streaming failed: {str(e)}") from e
+
 
 class ModelClientFactory:
     """Factory for creating model clients."""

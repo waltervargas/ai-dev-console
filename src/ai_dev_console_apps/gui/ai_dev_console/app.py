@@ -22,13 +22,22 @@ def init_session_state():
         st.session_state.client = None
     if "supported_models" not in st.session_state:
         st.session_state.supported_models = SupportedModels()
+    # Initialize default vendor and model if not set
+    if "vendor" not in st.session_state:
+        st.session_state.vendor = Vendor.ANTHROPIC.value
+    if "model" not in st.session_state:
+        default_models = get_available_models(Vendor.ANTHROPIC)
+        st.session_state.model = default_models[0] if default_models else None
 
 
 def get_available_models(vendor: Vendor) -> List[str]:
     """Get available models for vendor."""
     models = []
-    for model_name, model in st.session_state.supported_models.available_models.items():
-        if model.vendor == vendor:
+    for (
+        model_name,
+        model_mapping,
+    ) in st.session_state.supported_models._model_mappings.items():
+        if vendor in model_mapping.vendor_ids:
             models.append(model_name)
     return models
 
@@ -39,21 +48,41 @@ def get_sidebar_config() -> Dict[str, Any]:
         st.title("AI Dev Console")
 
         # Model Configuration
-        vendor = st.selectbox("Vendor", options=[v.value for v in Vendor], key="vendor")
-
+        vendor = st.selectbox(
+            "Vendor",
+            options=[v.value for v in Vendor],
+            key="vendor",
+            on_change=on_vendor_change,
+        )
         current_vendor = Vendor(vendor)
+
+        # Get available models for this vendor
         available_models = get_available_models(current_vendor)
+
+        # Ensure we have a valid model for the current vendor
+        if not available_models:
+            st.error(f"No models available for vendor {vendor}")
+            return {}
+
+        if (
+            "model" not in st.session_state
+            or st.session_state.model not in available_models
+        ):
+            st.session_state.model = available_models[0]
 
         model = st.selectbox("Model", options=available_models, key="model")
 
-        # Show model details (optional)
-        if model:
-            model_info = st.session_state.supported_models.get_model(model)
-            st.caption(f"Description: {model_info.description}")
-            st.caption(f"Latency: {model_info.comparative_latency}")
-            st.caption(
-                f"Vision support: {'Yes' if model_info.supports_vision else 'No'}"
-            )
+        # Get model info and resolved ID
+        model_info = st.session_state.supported_models.get_model(model)
+        resolved_model_id = st.session_state.supported_models.resolve_model_id(
+            model, current_vendor
+        )
+
+        # Show model details
+        st.caption(f"Description: {model_info.description}")
+        st.caption(f"Latency: {model_info.comparative_latency}")
+        st.caption(f"Vision support: {'Yes' if model_info.supports_vision else 'No'}")
+        st.caption(f"Model ID: {resolved_model_id}")
 
         # Parameters
         st.subheader("Parameters")
@@ -68,9 +97,19 @@ def get_sidebar_config() -> Dict[str, Any]:
         return {
             "vendor": current_vendor,
             "model": model,
+            "model_id": resolved_model_id,
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
+
+
+def on_vendor_change():
+    """Handle vendor change by updating model selection."""
+    if "vendor" in st.session_state:
+        current_vendor = Vendor(st.session_state.vendor)
+        available_models = get_available_models(current_vendor)
+        if available_models:
+            st.session_state.model = available_models[0]
 
 
 def display_chat_messages():
@@ -114,7 +153,6 @@ def main():
         st.session_state.client = factory.create_client(config["vendor"])
 
     # Display chat interface
-    st.title("Chat")
     display_chat_messages()
 
     # Chat input
@@ -127,9 +165,8 @@ def main():
         with st.chat_message("user"):
             st.write(prompt)
 
-        # Create request
         request = ConverseRequest(
-            model_id=config["model"],
+            model_id=config["model_id"],
             messages=[user_message],
             inference_config=InferenceConfiguration(
                 temperature=config["temperature"], max_tokens=config["max_tokens"]
