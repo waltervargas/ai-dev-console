@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 
-def main():
+def main() -> None:
     current_dir = os.path.dirname(os.path.abspath(__file__))
     app_path = os.path.join(current_dir, "app.py")
 

@@ -78,7 +78,7 @@ class AIModel:
                 output_cost_per_million_tokens=Decimal("1.25"),
             ),
             context_window=200000,
-            max_output_tokens=4096,
+            max_output_tokens=8192,
             supports_vision=True,
             supports_message_batches=True,
             training_cutoff=datetime(2023, 8, 1),

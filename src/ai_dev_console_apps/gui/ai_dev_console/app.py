@@ -47,7 +47,6 @@ def get_sidebar_config() -> Dict[str, Any]:
     with st.sidebar:
         st.title("AI Dev Console")
 
-        # Model Configuration
         vendor = st.selectbox(
             "Vendor",
             options=[v.value for v in Vendor],
@@ -56,10 +55,8 @@ def get_sidebar_config() -> Dict[str, Any]:
         )
         current_vendor = Vendor(vendor)
 
-        # Get available models for this vendor
         available_models = get_available_models(current_vendor)
 
-        # Ensure we have a valid model for the current vendor
         if not available_models:
             st.error(f"No models available for vendor {vendor}")
             return {}
@@ -72,24 +69,27 @@ def get_sidebar_config() -> Dict[str, Any]:
 
         model = st.selectbox("Model", options=available_models, key="model")
 
-        # Get model info and resolved ID
         model_info = st.session_state.supported_models.get_model(model)
         resolved_model_id = st.session_state.supported_models.resolve_model_id(
             model, current_vendor
         )
 
-        # Show model details
         st.caption(f"Description: {model_info.description}")
         st.caption(f"Latency: {model_info.comparative_latency}")
         st.caption(f"Vision support: {'Yes' if model_info.supports_vision else 'No'}")
         st.caption(f"Model ID: {resolved_model_id}")
 
-        # Parameters
-        st.subheader("Parameters")
-        temperature = st.slider("Temperature", 0.0, 1.0, 0.7)
-        max_tokens = st.number_input("Max Tokens", 100, 4096, 1000)
+        system_prompt = st.text_area("System Prompt", value=st.session_state.get('system_prompt', ''), height=100)
 
-        # Clear Chat
+        temperature = st.slider("Temperature", min_value=0.0, max_value=2.0, value=0.4)
+        max_tokens = st.number_input("Max Tokens", min_value=100, max_value=4096, value=4096)
+        top_k = st.number_input("Top K", min_value=0, max_value=100, value=5, step=1)
+
+        
+        # You should either alter temperature or top_p, but not both.
+        # https://docs.anthropic.com/en/api/complete
+        # top_p = st.slider("Top P", min_value=0.0, max_value=1.0, value=0.8, step=0.05)
+
         if st.button("Clear Chat"):
             st.session_state.messages = []
             st.rerun()
@@ -100,6 +100,7 @@ def get_sidebar_config() -> Dict[str, Any]:
             "model_id": resolved_model_id,
             "temperature": temperature,
             "max_tokens": max_tokens,
+            "top_k": top_k,
         }
 
 
@@ -136,6 +137,17 @@ def process_chat_stream(client, request: ConverseRequest, placeholder: st.empty)
         st.error(f"Error: {str(e)}")
         return None
 
+def prepare_messages_for_request(messages):
+    prepared_messages = []
+    for msg in messages:
+        if msg.role in [Role.USER, Role.ASSISTANT]:
+            prepared_messages.append(msg)
+
+    # Ensure the last message is from the user
+    if prepared_messages and prepared_messages[-1].role == Role.ASSISTANT:
+        prepared_messages.pop()
+
+    return prepared_messages
 
 def main():
     st.set_page_config(page_title="AI Dev Console", layout="wide")
@@ -153,6 +165,7 @@ def main():
         st.session_state.client = factory.create_client(config["vendor"])
 
     # Display chat interface
+    st.write(config)
     display_chat_messages()
 
     # Chat input
@@ -165,11 +178,16 @@ def main():
         with st.chat_message("user"):
             st.write(prompt)
 
+        # Prepare messages for the API request
+        prepared_messages = prepare_messages_for_request(st.session_state.messages)
+        st.write(prepared_messages)
+
         request = ConverseRequest(
             model_id=config["model_id"],
-            messages=[user_message],
+            messages=prepared_messages,
             inference_config=InferenceConfiguration(
-                temperature=config["temperature"], max_tokens=config["max_tokens"]
+                temperature=config["temperature"], 
+                max_tokens=config["max_tokens"],
             ),
         )
 
@@ -184,7 +202,6 @@ def main():
                         role=Role.ASSISTANT, content=[ContentBlock(text=response_text)]
                     )
                 )
-
 
 if __name__ == "__main__":
     main()

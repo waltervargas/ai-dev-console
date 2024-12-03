@@ -1,4 +1,4 @@
-from contextlib import contextmanager
+from contextlib import _GeneratorContextManager, contextmanager
 from typing import Dict, Any, Iterator, Optional
 from abc import ABC, abstractmethod
 import anthropic
@@ -94,7 +94,7 @@ class AnthropicClient(ModelClient):
             raise ModelClientError(f"Failed to process async request: {str(e)}") from e
 
     @contextmanager
-    def stream_response(self, request: ConverseRequest) -> Iterator[Iterator[str]]:
+    def stream_response(self, request: ConverseRequest) -> _GeneratorContextManager[str]:
         """Stream response from Anthropic's API."""
         try:
             request.validate()
@@ -102,7 +102,7 @@ class AnthropicClient(ModelClient):
 
             with self.client.messages.stream(**adapted_request) as stream:
 
-                def generate():
+                def generate() -> str:
                     for chunk in stream.text_stream:
                         if chunk:
                             yield chunk
