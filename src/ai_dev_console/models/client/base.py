@@ -94,7 +94,9 @@ class AnthropicClient(ModelClient):
             raise ModelClientError(f"Failed to process async request: {str(e)}") from e
 
     @contextmanager
-    def stream_response(self, request: ConverseRequest) -> _GeneratorContextManager[str]:
+    def stream_response(
+        self, request: ConverseRequest
+    ) -> _GeneratorContextManager[str]:
         """Stream response from Anthropic's API."""
         try:
             request.validate()
@@ -211,7 +213,6 @@ class AWSClient(ModelClient):
                             )
 
             yield generate()
-
         except Exception as e:
             raise ModelClientError(f"Streaming failed: {str(e)}") from e
 

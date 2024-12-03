@@ -79,13 +79,16 @@ def get_sidebar_config() -> Dict[str, Any]:
         st.caption(f"Vision support: {'Yes' if model_info.supports_vision else 'No'}")
         st.caption(f"Model ID: {resolved_model_id}")
 
-        system_prompt = st.text_area("System Prompt", value=st.session_state.get('system_prompt', ''), height=100)
+        system_prompt = st.text_area(
+            "System Prompt", value=st.session_state.get("system_prompt", ""), height=100
+        )
 
         temperature = st.slider("Temperature", min_value=0.0, max_value=2.0, value=0.4)
-        max_tokens = st.number_input("Max Tokens", min_value=100, max_value=4096, value=4096)
+        max_tokens = st.number_input(
+            "Max Tokens", min_value=100, max_value=4096, value=4096
+        )
         top_k = st.number_input("Top K", min_value=0, max_value=100, value=5, step=1)
 
-        
         # You should either alter temperature or top_p, but not both.
         # https://docs.anthropic.com/en/api/complete
         # top_p = st.slider("Top P", min_value=0.0, max_value=1.0, value=0.8, step=0.05)
@@ -134,8 +137,8 @@ def process_chat_stream(client, request: ConverseRequest, placeholder: st.empty)
             return response_text
 
     except Exception as e:
-        st.error(f"Error: {str(e)}")
-        return None
+        raise ModelClientError(f"Error processing chat stream: {str(e)}")
+
 
 def prepare_messages_for_request(messages):
     prepared_messages = []
@@ -148,6 +151,7 @@ def prepare_messages_for_request(messages):
         prepared_messages.pop()
 
     return prepared_messages
+
 
 def main():
     st.set_page_config(page_title="AI Dev Console", layout="wide")
@@ -186,22 +190,27 @@ def main():
             model_id=config["model_id"],
             messages=prepared_messages,
             inference_config=InferenceConfiguration(
-                temperature=config["temperature"], 
+                temperature=config["temperature"],
                 max_tokens=config["max_tokens"],
             ),
         )
 
-        # Process response
         with st.chat_message("assistant"):
             placeholder = st.empty()
-            if response_text := process_chat_stream(
-                st.session_state.client, request, placeholder
-            ):
-                st.session_state.messages.append(
-                    Message(
-                        role=Role.ASSISTANT, content=[ContentBlock(text=response_text)]
+            try:
+                if response_text := process_chat_stream(
+                    st.session_state.client, request, placeholder
+                ):
+                    st.session_state.messages.append(
+                        Message(
+                            role=Role.ASSISTANT,
+                            content=[ContentBlock(text=response_text)],
+                        )
                     )
-                )
+            except ModelClientError as e:
+                st.session_state.messages.pop()
+                st.error(e)
+
 
 if __name__ == "__main__":
     main()
