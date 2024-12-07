@@ -1,5 +1,5 @@
 from contextlib import _GeneratorContextManager, contextmanager
-from typing import Dict, Any, Iterator, Optional
+from typing import Dict, Any, Iterator, Optional, Generator
 from abc import ABC, abstractmethod
 import anthropic
 import boto3
@@ -19,17 +19,17 @@ class ModelClient(ABC):
         self.adapter = adapter
 
     @abstractmethod
-    async def converse_async(self, request: ConverseRequest) -> ConverseResponse:
-        """Asynchronously send a conversation request to the model."""
-        pass
-
-    @abstractmethod
     def converse(self, request: ConverseRequest) -> ConverseResponse:
         """Synchronously send a conversation request to the model."""
         pass
 
+    @abstractmethod
+    async def converse_async(self, request: ConverseRequest) -> ConverseResponse:
+        """Asynchronously send a conversation request to the model."""
+        pass
+
     @contextmanager
-    def stream_response(self, request: ConverseRequest) -> Iterator[str]:
+    def converse_stream(self, request: ConverseRequest) -> Iterator[str]:
         """
         Stream model responses.
 
@@ -94,7 +94,7 @@ class AnthropicClient(ModelClient):
             raise ModelClientError(f"Failed to process async request: {str(e)}") from e
 
     @contextmanager
-    def stream_response(
+    def converse_stream(
         self, request: ConverseRequest
     ) -> _GeneratorContextManager[str]:
         """Stream response from Anthropic's API."""
@@ -160,7 +160,7 @@ class AWSClient(ModelClient):
         raise NotImplementedError("Async operations not supported for Bedrock")
 
     @contextmanager
-    def stream_response(self, request: ConverseRequest) -> Iterator[Iterator[str]]:
+    def converse_stream(self, request: ConverseRequest) -> Iterator[Iterator[str]]:
         """
         Stream response from AWS Bedrock API.
 

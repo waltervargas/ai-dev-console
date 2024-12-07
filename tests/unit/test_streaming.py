@@ -71,7 +71,7 @@ class TestModelClientStreaming:
 
         client = AnthropicClient(mock_anthropic_client)
 
-        with client.stream_response(test_request) as stream:
+        with client.converse_stream(test_request) as stream:
             chunks = list(stream)
             assert chunks == ["Hello", " World", "!"]
 
@@ -90,7 +90,7 @@ class TestModelClientStreaming:
         )
 
         with pytest.raises(ModelClientError) as exc_info:
-            with client.stream_response(invalid_request):
+            with client.converse_stream(invalid_request):
                 pass
 
         assert "Model ID is required" in str(exc_info.value)
@@ -122,7 +122,7 @@ class TestModelClientStreaming:
 
         client = AnthropicClient(mock_anthropic_client)
 
-        with client.stream_response(test_request) as stream:
+        with client.converse_stream(test_request) as stream:
             chunks = list(stream)
             assert chunks == ["Hello", " World", "!"]
 
@@ -144,7 +144,7 @@ class TestModelClientStreaming:
         client = TestClient(Vendor.ANTHROPIC, Mock())
 
         with pytest.raises(NotImplementedError):
-            with client.stream_response(Mock()):
+            with client.converse_stream(Mock()):
                 pass
 
     def test_aws_streaming_not_implemented(self, test_request):
@@ -159,7 +159,7 @@ class TestModelClientStreaming:
         client = AWSClient(Mock())
 
         with pytest.raises(NotImplementedError):
-            with client.stream_response(test_request):
+            with client.converse_stream(test_request):
                 pass
 
     def test_anthropic_streaming_error_handling(
@@ -185,7 +185,7 @@ class TestModelClientStreaming:
         client = AnthropicClient(mock_anthropic_client)
 
         with pytest.raises(ModelClientError) as exc_info:
-            with client.stream_response(test_request):
+            with client.converse_stream(test_request):
                 pass
 
         assert "Streaming failed" in str(exc_info.value)

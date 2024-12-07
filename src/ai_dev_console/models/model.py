@@ -113,7 +113,6 @@ class SupportedModels:
                     Vendor.AWS: "anthropic.claude-3-5-sonnet-20240620-v1:0",
                 },
             ),
-            # Add other mappings as needed
         }
 
         # Initialize available models
@@ -184,7 +183,8 @@ class SupportedModels:
             str: The vendor-specific model identifier
 
         Raises:
-            ValueError: If the model or vendor mapping is not found
+            - ValueError: Model {model_name} not supported for vendor {vendor}
+            - ValueError: No mapping found for model {model_name} and vendor {vendor}
         """
         # Always check the mapping first
         mapping = self._model_mappings.get(model_name)

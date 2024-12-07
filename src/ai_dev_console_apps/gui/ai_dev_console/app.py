@@ -13,21 +13,48 @@ from ai_dev_console.models import (
 )
 from ai_dev_console.models.model import SupportedModels
 
+from session_storage import FileSessionStorage
+
+from aws import saml_auth_component
+
 
 def init_session_state():
-    """Initialize session state variables."""
+    """Initialize session state variables, including loading from a saved file."""
     if "messages" not in st.session_state:
         st.session_state.messages = []
     if "client" not in st.session_state:
         st.session_state.client = None
     if "supported_models" not in st.session_state:
         st.session_state.supported_models = SupportedModels()
-    # Initialize default vendor and model if not set
-    if "vendor" not in st.session_state:
-        st.session_state.vendor = Vendor.ANTHROPIC.value
-    if "model" not in st.session_state:
-        default_models = get_available_models(Vendor.ANTHROPIC)
-        st.session_state.model = default_models[0] if default_models else None
+    if "session_storage" not in st.session_state:
+        st.session_state.session_storage = FileSessionStorage()
+
+    # Load the last saved session, if available
+    last_session = st.session_state.session_storage.list_sessions()
+    if last_session:
+        st.session_state.session_name = last_session[0]
+        st.session_state.last_saved_state = (
+            st.session_state.session_storage.load_session(st.session_state.session_name)
+        )
+    else:
+        st.session_state.session_name = "New Chat"
+        st.session_state.last_saved_state = {}
+
+
+# def init_session_state():
+#     """Initialize session state variables."""
+#     if "messages" not in st.session_state:
+#         st.session_state.messages = []
+#     if "client" not in st.session_state:
+#         st.session_state.client = None
+#     if "supported_models" not in st.session_state:
+#         st.session_state.supported_models = SupportedModels()
+#     # Initialize default vendor and model if not set
+#     if "vendor" not in st.session_state:
+#         st.session_state.vendor = Vendor.ANTHROPIC.value
+#     if "model" not in st.session_state:
+#         default_models = get_available_models(Vendor.ANTHROPIC)
+#         st.session_state.model = default_models[0] if default_models else None
 
 
 def get_available_models(vendor: Vendor) -> List[str]:
@@ -46,6 +73,28 @@ def get_sidebar_config() -> Dict[str, Any]:
     """Get configuration from sidebar."""
     with st.sidebar:
         st.title("AI Dev Console")
+
+        with st.expander("AWS SAML Authentication"):
+            saml_auth_component()
+
+        if st.button("New Chat"):
+            st.session_state.messages = []
+            st.session_state.session_name = "New Chat"
+            st.session_state.last_saved_state = {}
+
+        available_sessions = st.session_state.session_storage.list_sessions()
+        if available_sessions:
+            selected_session = st.selectbox(
+                "Load Chat", options=available_sessions, index=0
+            )
+            if st.button("Load Chat"):
+                st.session_state.last_saved_state = (
+                    st.session_state.session_storage.load_session(selected_session)
+                )
+                st.session_state.session_name = selected_session
+                st.session_state.messages = st.session_state.last_saved_state.get(
+                    "messages", []
+                )
 
         vendor = st.selectbox(
             "Vendor",
@@ -104,6 +153,7 @@ def get_sidebar_config() -> Dict[str, Any]:
             "temperature": temperature,
             "max_tokens": max_tokens,
             "top_k": top_k,
+            "system_prompt": system_prompt,
         }
 
 
@@ -126,7 +176,7 @@ def display_chat_messages():
 def process_chat_stream(client, request: ConverseRequest, placeholder: st.empty):
     """Handle streaming chat response."""
     try:
-        with client.stream_response(request) as response_stream:
+        with client.converse_stream(request) as response_stream:
             response_text = ""
 
             for chunk in response_stream:
@@ -184,11 +234,12 @@ def main():
 
         # Prepare messages for the API request
         prepared_messages = prepare_messages_for_request(st.session_state.messages)
-        st.write(prepared_messages)
+        # st.write(prepared_messages)
 
         request = ConverseRequest(
             model_id=config["model_id"],
             messages=prepared_messages,
+            system=config.get("system_prompt"),
             inference_config=InferenceConfiguration(
                 temperature=config["temperature"],
                 max_tokens=config["max_tokens"],
