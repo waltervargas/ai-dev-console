@@ -1,4 +1,5 @@
-from typing import Dict, Any, Optional
+from contextlib import contextmanager
+from typing import Dict, Any, Iterator, Optional
 from abc import ABC, abstractmethod
 import anthropic
 import boto3
@@ -7,6 +8,7 @@ from .types import ConverseRequest, ConverseResponse
 from .adapters import VendorAdapter
 from ..vendor import Vendor
 from ..exceptions import ModelClientError
+
 
 class ModelClient(ABC):
     """Abstract base class for model clients."""
@@ -25,6 +27,20 @@ class ModelClient(ABC):
     def converse(self, request: ConverseRequest) -> ConverseResponse:
         """Synchronously send a conversation request to the model."""
         pass
+
+    @contextmanager
+    def stream_response(self, request: ConverseRequest) -> Iterator[str]:
+        """
+        Stream model responses.
+
+        Args:
+            request: The conversation request
+
+        Yields:
+            Iterator[str]: Stream of response chunks
+        """
+        raise NotImplementedError("Streaming not supported")
+
 
 class AnthropicClient(ModelClient):
     """Client implementation for Anthropic's API."""
@@ -77,10 +93,30 @@ class AnthropicClient(ModelClient):
         except Exception as e:
             raise ModelClientError(f"Failed to process async request: {str(e)}") from e
 
+    @contextmanager
+    def stream_response(self, request: ConverseRequest) -> Iterator[Iterator[str]]:
+        """Stream response from Anthropic's API."""
+        try:
+            request.validate()
+            adapted_request = self.adapter.adapt_request(request)
+
+            with self.client.messages.stream(**adapted_request) as stream:
+
+                def generate():
+                    for chunk in stream.text_stream:
+                        if chunk:
+                            yield chunk
+
+                yield generate()
+
+        except Exception as e:
+            raise ModelClientError(f"Streaming failed: {str(e)}")
+
+
 class AWSClient(ModelClient):
     """Client implementation for AWS Bedrock's API."""
 
-    def __init__(self, client: 'boto3.client'):
+    def __init__(self, client: "boto3.client"):
         """Initialize the Bedrock client."""
         super().__init__(Vendor.AWS, VendorAdapter.create(Vendor.AWS))
         self.client = client
@@ -121,13 +157,70 @@ class AWSClient(ModelClient):
         """
         raise NotImplementedError("Async operations not supported for Bedrock")
 
+    @contextmanager
+    def stream_response(self, request: ConverseRequest) -> Iterator[Iterator[str]]:
+        """
+        Stream response from AWS Bedrock API.
+
+        Args:
+            request: The conversation request
+
+        Yields:
+            Iterator[str]: Stream of response chunks
+
+        Raises:
+            ModelClientError: If streaming fails
+        """
+        try:
+            request.validate()
+            adapted_request = self.adapter.adapt_request(request)
+
+            # Get the stream response
+            response = self.client.converse_stream(**adapted_request)
+
+            def generate() -> Iterator[str]:
+                current_role = None
+
+                for event in response["stream"]:
+                    # Handle message start
+                    if "messageStart" in event:
+                        current_role = event["messageStart"]["role"]
+                        continue
+
+                    # Only process assistant responses
+                    if current_role != "assistant":
+                        continue
+
+                    # Handle content deltas (actual text chunks)
+                    if "contentBlockDelta" in event:
+                        delta = event["contentBlockDelta"]["delta"]
+                        if "text" in delta and delta["text"]:
+                            yield delta["text"]
+
+                    # Handle errors
+                    for error_type in [
+                        "internalServerException",
+                        "modelStreamErrorException",
+                        "validationException",
+                        "throttlingException",
+                        "serviceUnavailableException",
+                    ]:
+                        if error_type in event:
+                            raise ModelClientError(
+                                f"AWS Bedrock error: {event[error_type]['message']}"
+                            )
+
+            yield generate()
+
+        except Exception as e:
+            raise ModelClientError(f"Streaming failed: {str(e)}") from e
+
+
 class ModelClientFactory:
     """Factory for creating model clients."""
 
     def create_client(
-        self,
-        vendor: Vendor,
-        client: Optional[Any] = None
+        self, vendor: Vendor, client: Optional[Any] = None
     ) -> ModelClient:
         """
         Create a model client for the specified vendor.
@@ -152,7 +245,7 @@ class ModelClientFactory:
                 return AWSClient(client)
 
             # AWS SDK will use default credential chain
-            bedrock_client = boto3.client('bedrock-runtime')
+            bedrock_client = boto3.client("bedrock-runtime")
             return AWSClient(bedrock_client)
 
         elif vendor == Vendor.OPENAI:
