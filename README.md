@@ -54,7 +54,7 @@ streamline their AI development workflow with:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/ai-dev-console.git
+git clone https://github.com/waltervargas/ai-dev-console.git
 
 # Navigate to project directory
 cd ai-dev-console
