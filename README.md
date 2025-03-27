@@ -60,7 +60,7 @@ git clone https://github.com/waltervargas/ai-dev-console.git
 cd ai-dev-console
 
 # Create virtual environment
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
