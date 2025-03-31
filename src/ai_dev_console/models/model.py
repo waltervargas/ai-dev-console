@@ -122,8 +122,8 @@ class SupportedModels:
         }
 
         self.available_models: Dict[str, AIModel] = {
-            "anthropic.claude-3-7-sonnet-20250219": AIModel(
-                name="anthropic.claude-3-7-sonnet-20250219",
+            "claude-3-7-sonnet-20250219": AIModel(
+                name="claude-3-7-sonnet-20250219",
                 vendor=Vendor.AWS,
                 costs=ModelCosts(
                     input_cost_per_million_tokens=Decimal("3.0"),
@@ -150,6 +150,21 @@ class SupportedModels:
                 supports_message_batches=True,
                 training_cutoff=datetime(2025, 2, 19),
                 description="Our most expressive model",
+                comparative_latency="Fast",
+            ),
+             "claude-3-5-sonnet-20241022": AIModel(
+                name="claude-3-5-sonnet-20241022",
+                vendor=Vendor.AWS,
+                costs=ModelCosts(
+                    input_cost_per_million_tokens=Decimal("3.0"),
+                    output_cost_per_million_tokens=Decimal("15.0"),
+                ),
+                context_window=200000,
+                max_output_tokens=8192,
+                supports_vision=True,
+                supports_message_batches=True,
+                training_cutoff=datetime(2024, 4, 1),
+                description="Our most intelligent model",
                 comparative_latency="Fast",
             ),
             "claude-3-5-sonnet-20241022": AIModel(
