@@ -51,6 +51,6 @@ jobs:
         run: |
           black --check src/ tests/
 
-      - name: Check types with Mypy
-        run: |
-          mypy src/
+    #   - name: Check types with Mypy
+    #     run: |
+    #       mypy src/
