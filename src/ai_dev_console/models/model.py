@@ -306,38 +306,40 @@ class SupportedModels:
             str: The vendor-specific model identifier
         """
         return self.get_vendor_model_id(model_id, vendor)
-    
-    def resolve_model_name_and_vendor(self, model_id: str) -> Tuple[str, Optional[Vendor]]:
+
+    def resolve_model_name_and_vendor(
+        self, model_id: str
+    ) -> Tuple[str, Optional[Vendor]]:
         """
         Resolve a model identifier to its canonical name and vendor.
-        
+
         This method takes a model ID (which could be a canonical name or vendor-specific ID)
         and returns both the canonical model name and the vendor it belongs to.
-        
+
         Args:
             model_id (str): The model identifier to resolve
-            
+
         Returns:
             Tuple[str, Optional[Vendor]]: The canonical model name and vendor.
             If the vendor cannot be determined uniquely, vendor will be None.
-            
+
         Raises:
             ValueError: If the model_id cannot be resolved to any known model
         """
         # Check if the model_id is a canonical name first
         if model_id in self._model_mappings:
             return model_id, None  # Return canonical name, but can't determine vendor
-        
+
         # Check if the model_id is a vendor-specific ID
         for canonical_name, mapping in self._model_mappings.items():
             for vendor, vendor_id in mapping.vendor_ids.items():
                 if vendor_id == model_id:
                     return canonical_name, vendor
-        
+
         # If no match found, check the available models directly
         for name, model in self.available_models.items():
             if name == model_id:
                 return name, model.vendor
-        
+
         # If we get here, we couldn't resolve the model_id
         raise ValueError(f"Unable to resolve model ID: {model_id}")

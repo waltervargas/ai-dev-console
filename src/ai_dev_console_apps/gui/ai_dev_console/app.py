@@ -176,6 +176,22 @@ def display_chat_messages():
 def process_chat_stream(client, request: ConverseRequest, placeholder: st.empty):
     """Handle streaming chat response."""
     try:
+        # Print request details for debugging
+        st.session_state["debug_info"] = {
+            "client_type": type(client).__name__,
+            "client_vendor": client.vendor.value,
+            "request_model_id": request.model_id,
+        }
+
+        # For AWS models that require inference profiles, ensure ARN is properly resolved
+        if client.vendor == Vendor.AWS and hasattr(client, "_resolve_model_id"):
+            # Get the resolved model_id directly from the AWS client
+            resolved_model_id = client._resolve_model_id(request.model_id)
+            st.session_state["debug_info"]["resolved_model_id"] = resolved_model_id
+            # Explicitly update the request's model_id with the resolved one
+            # This ensures the ARN is properly set for claude-sonnet-3-7
+            request.model_id = resolved_model_id
+
         with client.converse_stream(request) as response_stream:
             response_text = ""
 
@@ -187,7 +203,11 @@ def process_chat_stream(client, request: ConverseRequest, placeholder: st.empty)
             return response_text
 
     except Exception as e:
-        raise ModelClientError(f"Error processing chat stream: {str(e)}")
+        error_msg = f"Error processing chat stream: {str(e)}"
+        # Add debug info to the error message
+        if "debug_info" in st.session_state:
+            error_msg += f"\nDebug info: {st.session_state['debug_info']}"
+        raise ModelClientError(error_msg)
 
 
 def prepare_messages_for_request(messages):
@@ -220,6 +240,30 @@ def main():
 
     # Display chat interface
     st.write(config)
+
+    # Debug information for the AWS client, if using AWS
+    if config["vendor"] == Vendor.AWS and st.session_state.client is not None:
+        st.caption("AWS Client Debug:")
+        # Add these fields if you're running AWS client
+        aws_client = st.session_state.client
+        if hasattr(aws_client, "region"):
+            st.caption(f"AWS Region: {aws_client.region}")
+        if hasattr(aws_client, "account_id"):
+            st.caption(f"AWS Account ID: {aws_client.account_id}")
+
+        # Display if the model requires inference profile
+        models = SupportedModels()
+        model_name = config["model"]
+        if models.requires_inference_profile(model_name):
+            st.caption(f"Model requires inference profile: Yes")
+            if hasattr(aws_client, "region") and hasattr(aws_client, "account_id"):
+                profile_arn = models.get_inference_profile_arn(
+                    model_name, aws_client.region, aws_client.account_id
+                )
+                st.caption(f"Generated Profile ARN: {profile_arn}")
+        else:
+            st.caption(f"Model requires inference profile: No")
+
     display_chat_messages()
 
     # Chat input
@@ -236,6 +280,7 @@ def main():
         prepared_messages = prepare_messages_for_request(st.session_state.messages)
         # st.write(prepared_messages)
 
+        # Create the request
         request = ConverseRequest(
             model_id=config["model_id"],
             messages=prepared_messages,
@@ -245,6 +290,9 @@ def main():
                 max_tokens=config["max_tokens"],
             ),
         )
+
+        # For debugging
+        st.session_state["last_request"] = request
 
         with st.chat_message("assistant"):
             placeholder = st.empty()
@@ -258,9 +306,20 @@ def main():
                             content=[ContentBlock(text=response_text)],
                         )
                     )
+
+                    # If debug_info is available, display it in a collapsed expander
+                    if "debug_info" in st.session_state:
+                        with st.expander("Debug Info (Click to expand)"):
+                            st.json(st.session_state["debug_info"])
+
             except ModelClientError as e:
                 st.session_state.messages.pop()
                 st.error(e)
+
+                # On error, also display the debug info to help troubleshoot
+                if "debug_info" in st.session_state:
+                    with st.expander("Debug Info (Click to expand)"):
+                        st.json(st.session_state["debug_info"])
 
 
 if __name__ == "__main__":

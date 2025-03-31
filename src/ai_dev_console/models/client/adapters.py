@@ -20,6 +20,7 @@ from .types import (
 from ..vendor import Vendor
 from ..model import SupportedModels
 
+
 class VendorAdapter(ABC):
     """Abstract base class for vendor-specific adapters."""
 
@@ -50,19 +51,8 @@ class AnthropicAdapter(VendorAdapter):
         """Convert to Anthropic's format."""
         messages: List[AnthropicMessage] = []
 
-        # Ensure model_id is set for AWS if the model requires inference profile 
-        model_id = None
-        models = SupportedModels()
-        try:
-            model_name, vendor = models.resolve_model_name_and_vendor(request.model_id)
-            if models.requires_inference_profile(model_name):
-                model_id = models.get_inference_profile_arn(
-                    request.model_id, vendor
-                )
-        except AttributeError as e:
-            raise RuntimeError("SupportedModels methods are not properly defined.") from e
-        except Exception as e:
-            raise RuntimeError(f"Error resolving model or vendor: {e}") from e
+        # Use the original model_id - no ARN transformation needed for Anthropic
+        model_id = request.model_id
 
         for msg in request.messages:
             if (
