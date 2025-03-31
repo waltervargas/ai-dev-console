@@ -152,7 +152,7 @@ class SupportedModels:
                 description="Our most expressive model",
                 comparative_latency="Fast",
             ),
-             "claude-3-5-sonnet-20241022": AIModel(
+            "claude-3-5-sonnet-20241022": AIModel(
                 name="claude-3-5-sonnet-20241022",
                 vendor=Vendor.AWS,
                 costs=ModelCosts(
@@ -212,7 +212,6 @@ class SupportedModels:
                 description="Our fastest model",
                 comparative_latency="Fastest",
             ),
-
         }
 
     def get_model(self, model_name: str) -> AIModel:
@@ -249,7 +248,7 @@ class SupportedModels:
         model = self.available_models.get(model_name)
         if model and model.vendor == vendor:
             return model_name
-        
+
         raise ValueError(
             f"No mapping found for model '{model_name}' and vendor {vendor.value}"
         )
