@@ -137,6 +137,23 @@ def get_sidebar_config() -> Dict[str, Any]:
             "Max Tokens", min_value=100, max_value=4096, value=4096
         )
         top_k = st.number_input("Top K", min_value=0, max_value=100, value=5, step=1)
+        
+        # Add thinking controls for claude-3-7 models
+        thinking_enabled = False
+        thinking_budget = 16000
+        if model and "claude-3-7" in model:
+            st.markdown("---")
+            st.subheader("Extended Reasoning")
+            thinking_enabled = st.checkbox("Enable thinking/extended reasoning", value=False)
+            if thinking_enabled:
+                thinking_budget = st.slider(
+                    "Thinking budget (tokens)", 
+                    min_value=1000, 
+                    max_value=32000, 
+                    value=16000,
+                    step=1000
+                )
+                st.caption("Higher budget allows for more thorough reasoning")
 
         # You should either alter temperature or top_p, but not both.
         # https://docs.anthropic.com/en/api/complete
@@ -154,6 +171,8 @@ def get_sidebar_config() -> Dict[str, Any]:
             "max_tokens": max_tokens,
             "top_k": top_k,
             "system_prompt": system_prompt,
+            "thinking_enabled": thinking_enabled if "claude-3-7" in model else False,
+            "thinking_budget": thinking_budget,
         }
 
 
@@ -177,11 +196,49 @@ def process_chat_stream(client, request: ConverseRequest, placeholder: st.empty)
     """Handle streaming chat response."""
     try:
         # Print request details for debugging
-        st.session_state["debug_info"] = {
+        # Create request info with basic details
+        debug_info = {
             "client_type": type(client).__name__,
             "client_vendor": client.vendor.value,
             "request_model_id": request.model_id,
         }
+        
+        # Add full request details in JSON format
+        request_dict = {
+            "model_id": request.model_id,
+            "system": request.system,
+            "thinking_enabled": request.thinking_enabled,
+            "thinking_budget": request.thinking_budget if request.thinking_enabled else None,
+            "inference_config": {
+                "temperature": request.inference_config.temperature,
+                "max_tokens": request.inference_config.max_tokens,
+                "top_p": request.inference_config.top_p,
+                "stop_sequences": request.inference_config.stop_sequences,
+            },
+            "messages": [
+                {
+                    "role": msg.role.value,
+                    "content": [
+                        {
+                            "text": block.text,
+                            "image": block.image,
+                            "document": block.document
+                        } for block in msg.content
+                    ]
+                } for msg in request.messages
+            ]
+        }
+        
+        # Add adapted request that will be sent to the API
+        if client.vendor == Vendor.ANTHROPIC:
+            adapted_request = client.adapter.adapt_request(request)
+            debug_info["adapted_anthropic_request"] = adapted_request
+        elif client.vendor == Vendor.AWS:
+            adapted_request = client.adapter.adapt_request(request)
+            debug_info["adapted_aws_request"] = adapted_request
+        
+        debug_info["request"] = request_dict
+        st.session_state["debug_info"] = debug_info
 
         # For AWS models that require inference profiles, ensure ARN is properly resolved
         if client.vendor == Vendor.AWS and hasattr(client, "_resolve_model_id"):
@@ -289,6 +346,8 @@ def main():
                 temperature=config["temperature"],
                 max_tokens=config["max_tokens"],
             ),
+            thinking_enabled=config.get("thinking_enabled", False),
+            thinking_budget=config.get("thinking_budget", 16000),
         )
 
         # For debugging
