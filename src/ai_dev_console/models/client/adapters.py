@@ -18,6 +18,7 @@ from .types import (
     AnthropicContentBlock,
 )
 from ..vendor import Vendor
+from ..model import SupportedModels
 
 
 class VendorAdapter(ABC):
@@ -49,6 +50,9 @@ class AnthropicAdapter(VendorAdapter):
     def adapt_request(self, request: ConverseRequest) -> AnthropicRequestDict:
         """Convert to Anthropic's format."""
         messages: List[AnthropicMessage] = []
+
+        # Use the original model_id - no ARN transformation needed for Anthropic
+        model_id = request.model_id
 
         for msg in request.messages:
             if (
@@ -96,7 +100,7 @@ class AnthropicAdapter(VendorAdapter):
         )
 
         adapted: AnthropicRequestDict = {
-            "model": request.model_id,
+            "model": model_id or request.model_id,
             "messages": messages,
             "max_tokens": max_tokens,
         }

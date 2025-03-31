@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 from .vendor import Vendor
 
@@ -121,6 +121,10 @@ class SupportedModels:
             ),
         }
 
+        self._models_requiring_inference_profiles = {
+            "claude-3-7-sonnet-20250219",
+        }
+
         self.available_models: Dict[str, AIModel] = {
             "claude-3-7-sonnet-20250219": AIModel(
                 name="claude-3-7-sonnet-20250219",
@@ -214,6 +218,41 @@ class SupportedModels:
             ),
         }
 
+    # TODO: This should be part of the client adapter, not part of the model.
+    def requires_inference_profile(self, model_name: str) -> bool:
+        """
+        Check if a model requires an inference profile.
+
+        Args:
+            model_name (str): The canonical model name
+
+        Returns:
+            bool: True if the model requires an inference profile, False otherwise
+        """
+        return model_name in self._models_requiring_inference_profiles
+
+    def get_inference_profile_arn(
+        self, model_name: str, region: str, account_id: str
+    ) -> str:
+        """
+        Get the ARN for the inference profile.
+
+        Args:
+            model_name (str): The canonical model name
+            region (str): The AWS region
+            account_id (str): The AWS account ID
+        Returns:
+            str: The ARN for the inference profile
+        """
+        if not self.requires_inference_profile(model_name):
+            raise ValueError(
+                f"Model '{model_name}' does not require an inference profile"
+            )
+
+        region_prefix = region[:2]
+        model_id = self.get_vendor_model_id(model_name, Vendor.AWS)
+        return f"arn:aws:bedrock:{region}:{account_id}:inference-profile/{region_prefix}.{model_id}"
+
     def get_model(self, model_name: str) -> AIModel:
         """Get a model by name."""
         if model_name not in self.available_models:
@@ -267,3 +306,40 @@ class SupportedModels:
             str: The vendor-specific model identifier
         """
         return self.get_vendor_model_id(model_id, vendor)
+
+    def resolve_model_name_and_vendor(
+        self, model_id: str
+    ) -> Tuple[str, Optional[Vendor]]:
+        """
+        Resolve a model identifier to its canonical name and vendor.
+
+        This method takes a model ID (which could be a canonical name or vendor-specific ID)
+        and returns both the canonical model name and the vendor it belongs to.
+
+        Args:
+            model_id (str): The model identifier to resolve
+
+        Returns:
+            Tuple[str, Optional[Vendor]]: The canonical model name and vendor.
+            If the vendor cannot be determined uniquely, vendor will be None.
+
+        Raises:
+            ValueError: If the model_id cannot be resolved to any known model
+        """
+        # Check if the model_id is a canonical name first
+        if model_id in self._model_mappings:
+            return model_id, None  # Return canonical name, but can't determine vendor
+
+        # Check if the model_id is a vendor-specific ID
+        for canonical_name, mapping in self._model_mappings.items():
+            for vendor, vendor_id in mapping.vendor_ids.items():
+                if vendor_id == model_id:
+                    return canonical_name, vendor
+
+        # If no match found, check the available models directly
+        for name, model in self.available_models.items():
+            if name == model_id:
+                return name, model.vendor
+
+        # If we get here, we couldn't resolve the model_id
+        raise ValueError(f"Unable to resolve model ID: {model_id}")
