@@ -147,21 +147,6 @@ class TestModelClientStreaming:
             with client.converse_stream(Mock()):
                 pass
 
-    def test_aws_streaming_not_implemented(self, test_request):
-        """
-        Story: AWS streaming should not be implemented yet
-        Given an AWS client
-        When attempting to stream
-        Then it should raise NotImplementedError
-        """
-        from ai_dev_console.models.client.base import AWSClient
-
-        client = AWSClient(Mock())
-
-        with pytest.raises(NotImplementedError):
-            with client.converse_stream(test_request):
-                pass
-
     def test_anthropic_streaming_error_handling(
         self, mock_anthropic_client, test_request
     ):
