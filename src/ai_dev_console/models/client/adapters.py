@@ -119,6 +119,13 @@ class AnthropicAdapter(VendorAdapter):
         if request.system:
             adapted["system"] = request.system
 
+        # Add thinking/extended reasoning for Claude 3.7 models when enabled
+        if request.thinking_enabled and "claude-3-7" in request.model_id:
+            adapted["thinking"] = {
+                "type": "enabled",
+                "budget_tokens": request.thinking_budget,
+            }
+
         return adapted
 
     def adapt_response(self, response: Dict[str, Any]) -> ConverseResponse:

@@ -120,6 +120,13 @@ class AnthropicMessage(TypedDict):
     content: Union[str, List[AnthropicContentBlock]]
 
 
+class ThinkingConfig(TypedDict, total=False):
+    """Configuration for Claude's thinking/extended reasoning."""
+
+    type: Literal["enabled", "disabled"]
+    budget_tokens: Optional[int]
+
+
 class AnthropicRequestDict(TypedDict, total=False):
     """Anthropic API request format.
 
@@ -141,6 +148,7 @@ class AnthropicRequestDict(TypedDict, total=False):
     tools: Optional[List[AnthropicTool]]
     top_k: Optional[int]
     top_p: Optional[float]
+    thinking: Optional[ThinkingConfig]
 
 
 # Vendor-agnostic Types
@@ -222,6 +230,8 @@ class ConverseRequest:
     messages: List[Message]
     system: Optional[str] = None
     inference_config: Optional[InferenceConfiguration] = None
+    thinking_enabled: bool = False
+    thinking_budget: int = 16000
 
     def __post_init__(self) -> None:
         if self.inference_config is None:
