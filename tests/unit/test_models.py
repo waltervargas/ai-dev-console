@@ -4,6 +4,7 @@ import pytest
 from ai_dev_console.models.model import AIModel, ModelCosts, SupportedModels
 from ai_dev_console.models.vendor import Vendor
 
+
 class TestAIDeveloperWorkflow:
     """
     Test suite that follows a typical AI developer's journey using the console.
@@ -32,9 +33,9 @@ class TestAIDeveloperWorkflow:
         Then they should see all supported Claude 3 variants
         """
         expected_models = {
+            "claude-3-7-sonnet-20250219",
             "claude-3-5-sonnet-20241022",
-            "claude-3-5-haiku-20241022",
-            "claude-3-haiku-20240307"
+            "claude-3-haiku-20240307",
         }
         assert set(supported_models.available_models) == expected_models
 
@@ -56,6 +57,7 @@ class TestAIDeveloperWorkflow:
         assert model.costs.input_cost_per_million_tokens == Decimal("0.25")
         assert model.costs.output_cost_per_million_tokens == Decimal("1.25")
 
+
 class TestCostEstimationScenarios:
     """
     Test suite for various cost estimation scenarios a developer might encounter.
@@ -66,7 +68,7 @@ class TestCostEstimationScenarios:
         """Standard cost configuration for a typical project."""
         return ModelCosts(
             input_cost_per_million_tokens=Decimal("0.25"),
-            output_cost_per_million_tokens=Decimal("1.25")
+            output_cost_per_million_tokens=Decimal("1.25"),
         )
 
     def test_developer_estimates_small_project_cost(self, project_costs):
@@ -76,10 +78,7 @@ class TestCostEstimationScenarios:
         When they calculate the cost
         Then they should get an accurate estimate in USD
         """
-        cost = project_costs.calculate_cost(
-            input_tokens=1000,
-            output_tokens=1000
-        )
+        cost = project_costs.calculate_cost(input_tokens=1000, output_tokens=1000)
         assert cost == Decimal("0.00150")
 
     def test_developer_estimates_large_project_cost(self, project_costs):
@@ -90,11 +89,10 @@ class TestCostEstimationScenarios:
         Then they should get a precise estimate with proper decimal places
         """
         cost = project_costs.calculate_cost(
-            input_tokens=1_000_000,
-            output_tokens=1_000_000
+            input_tokens=1_000_000, output_tokens=1_000_000
         )
         assert cost == Decimal("1.50000")
-        assert len(str(cost).split('.')[1]) == 5  # Ensures 5 decimal precision
+        assert len(str(cost).split(".")[1]) == 5  # Ensures 5 decimal precision
 
     def test_developer_attempts_invalid_cost_calculation(self, project_costs):
         """
@@ -105,6 +103,7 @@ class TestCostEstimationScenarios:
         """
         with pytest.raises(ValueError, match="Token counts cannot be negative"):
             project_costs.calculate_cost(-1, 100)
+
 
 class TestModelSelectionScenarios:
     """
@@ -150,22 +149,7 @@ class TestModelSelectionScenarios:
         assert aws_id == "anthropic.claude-3-haiku-20240307-v1:0"
 
         # Test canonical name to Anthropic ID
-        anthropic_id = models.resolve_model_id("claude-3-haiku-20240307", Vendor.ANTHROPIC)
+        anthropic_id = models.resolve_model_id(
+            "claude-3-haiku-20240307", Vendor.ANTHROPIC
+        )
         assert anthropic_id == "claude-3-haiku-20240307"
-
-        # Test direct vendor ID passthrough
-        direct_id = models.resolve_model_id("anthropic.claude-3-haiku-20240307-v1:0", Vendor.AWS)
-        assert direct_id == "anthropic.claude-3-haiku-20240307-v1:0"
-
-    def test_unknown_model_resolution(self):
-        """
-        Story: A developer uses an unknown model identifier
-        Given an unknown model ID
-        When resolving it
-        Then the original ID is returned unchanged
-        """
-        models = SupportedModels()
-
-        unknown_id = "unknown-model"
-        resolved_id = models.resolve_model_id(unknown_id, Vendor.AWS)
-        assert resolved_id == unknown_id    

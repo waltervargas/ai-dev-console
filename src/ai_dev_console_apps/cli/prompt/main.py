@@ -10,8 +10,9 @@ from ai_dev_console.models import (
     Role,
     Vendor,
     ModelClientFactory,
-    InferenceConfiguration
+    InferenceConfiguration,
 )
+
 
 def parse_arguments(args: Optional[List[str]] = None) -> argparse.Namespace:
     """Parse command-line arguments for the AI prompt tool."""
@@ -38,38 +39,32 @@ Examples:
     # With custom parameters
     echo "Explain ML" | ai-prompt --vendor aws --model anthropic.claude-3-haiku-20240307 \\
         --temperature 0.7 --max-tokens 1000
-        """
+        """,
     )
 
     parser.add_argument(
-        "--vendor", 
-        type=str, 
+        "--vendor",
+        type=str,
         choices=[v.value for v in Vendor],
         required=True,
-        help="AI vendor to use for the model"
+        help="AI vendor to use for the model",
     )
 
     parser.add_argument(
-        "--model", 
-        type=str, 
-        required=True,
-        help="Specific model identifier to use"
+        "--model", type=str, required=True, help="Specific model identifier to use"
     )
 
     # Optional inference configuration parameters
     parser.add_argument(
-        "--temperature",
-        type=float,
-        help="Controls randomness in response (0.0 - 1.0)"
+        "--temperature", type=float, help="Controls randomness in response (0.0 - 1.0)"
     )
 
     parser.add_argument(
-        "--max-tokens",
-        type=int,
-        help="Maximum number of tokens in the response"
+        "--max-tokens", type=int, help="Maximum number of tokens in the response"
     )
 
     return parser.parse_args(args)
+
 
 def main(argv: Optional[List[str]] = None) -> int:
     """
@@ -83,7 +78,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         args = parse_arguments(argv)
 
         # Read prompt from stdin
-        prompt = os.getenv('DEBUG_INPUT') or sys.stdin.read().strip()
+        prompt = os.getenv("DEBUG_INPUT") or sys.stdin.read().strip()
         if not prompt:
             print("Error: No input provided", file=sys.stderr)
             return 1
@@ -92,8 +87,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         inference_config = None
         if args.temperature is not None or args.max_tokens is not None:
             inference_config = InferenceConfiguration(
-                temperature=args.temperature,
-                max_tokens=args.max_tokens
+                temperature=args.temperature, max_tokens=args.max_tokens
             )
 
         # Process and output response
@@ -103,13 +97,8 @@ def main(argv: Optional[List[str]] = None) -> int:
 
         request = ConverseRequest(
             model_id=args.model,
-            messages=[
-                Message(
-                    role=Role.USER,
-                    content=[ContentBlock(text=prompt)]
-                )
-            ],
-            inference_config=inference_config
+            messages=[Message(role=Role.USER, content=[ContentBlock(text=prompt)])],
+            inference_config=inference_config,
         )
 
         response = client.converse(request)
@@ -120,6 +109,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     except Exception as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
+
 
 # Allow direct script execution and entry point invocation
 if __name__ == "__main__":
