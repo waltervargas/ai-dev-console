@@ -12,6 +12,7 @@ from ai_dev_console.models import (
     Vendor,
 )
 from ai_dev_console.models.client.adapters import VendorAdapter
+from ai_dev_console.models.client.base import AWSClient
 
 
 class TestModelClientFactory:
@@ -50,6 +51,36 @@ class TestModelClientFactory:
             mock_boto3.assert_called_once_with(
                 "bedrock-runtime",
             )
+
+    def test_crossregion_inference_profile_resolution(self):
+        """
+        Story: AWS Bedrock provides access to the model Claude Sonnet 3.7 only
+        via cross-region inference profile.
+        GIVEN a model ID that requires cross-region inference
+        WHEN creating a client for AWS
+        THEN the client should be configured with the cross-region inference
+        profile instead of the model_id.
+        """
+        mock_client = Mock()
+        mock_client.meta.region_name = "eu-central-1"
+
+        mock_session = Mock()
+        mock_client._session = mock_session
+
+        mock_credentials = Mock()
+        mock_session.get_credentials.return_value = mock_credentials
+
+        mock_frozen = Mock()
+        mock_frozen.account_id = "123456789"
+
+        mock_credentials.get_frozen_credentials.return_value = mock_frozen
+
+        client = AWSClient(mock_client)
+
+        resolved_id = client._resolve_model_id("claude-3-7-sonnet-20250219")
+        expected_arn = "arn:aws:bedrock:eu-central-1:123456789:inference-profile/eu.anthropic.claude-3-7-sonnet-20250219-v1:0"
+
+        assert resolved_id == expected_arn
 
 
 class TestVendorAdapter:

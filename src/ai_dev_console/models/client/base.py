@@ -8,6 +8,7 @@ from .types import ConverseRequest, ConverseResponse
 from .adapters import VendorAdapter
 from ..vendor import Vendor
 from ..exceptions import ModelClientError
+from ..model import SupportedModels
 
 
 class ModelClient(ABC):
@@ -122,6 +123,28 @@ class AWSClient(ModelClient):
         """Initialize the Bedrock client."""
         super().__init__(Vendor.AWS, VendorAdapter.create(Vendor.AWS))
         self.client = client
+        self.supported_models = SupportedModels()
+
+        # AWS Account_ID and region
+        self.region = self.client.meta.region_name
+        self.account_id = get_aws_account_id(client)
+
+    def _resolve_model_id(self, model_id: str) -> str:
+        """Resolve the model ID to its canonical form."""
+        canonical_name = None
+        for name, mapping in self.supported_models._model_mappings.items():
+            if mapping.vendor_ids.get(Vendor.AWS) == model_id or name == model_id:
+                canonical_name = name
+                break
+
+        if canonical_name and self.supported_models.requires_inference_profile(
+            canonical_name
+        ):
+            return self.supported_models.get_inference_profile_arn(
+                canonical_name, self.region, self.account_id
+            )
+
+        return model_id
 
     def converse(self, request: ConverseRequest) -> ConverseResponse:
         """
@@ -254,3 +277,14 @@ class ModelClientFactory:
             raise NotImplementedError("OpenAI client not yet implemented")
 
         raise ValueError(f"Unsupported vendor: {vendor}")
+
+
+def get_aws_account_id(client: "boto3.client") -> str:
+    """Get the AWS account ID from the STS client."""
+    try:
+        # Try to get from client session (Mock)
+        return client._session.get_credentials().get_frozen_credentials().account_id
+    except (AttributeError, ValueError):
+        # Fall back to STS GetCallerIdentity
+        sts_client = boto3.client("sts")
+        return sts_client.get_caller_identity()["Account"]

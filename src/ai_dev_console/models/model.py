@@ -121,6 +121,10 @@ class SupportedModels:
             ),
         }
 
+        self._models_requiring_inference_profiles = {
+            "claude-3-7-sonnet-20250219",
+        }
+
         self.available_models: Dict[str, AIModel] = {
             "claude-3-7-sonnet-20250219": AIModel(
                 name="claude-3-7-sonnet-20250219",
@@ -213,6 +217,41 @@ class SupportedModels:
                 comparative_latency="Fastest",
             ),
         }
+
+    # TODO: This should be part of the client adapter, not part of the model.
+    def requires_inference_profile(self, model_name: str) -> bool:
+        """
+        Check if a model requires an inference profile.
+
+        Args:
+            model_name (str): The canonical model name
+
+        Returns:
+            bool: True if the model requires an inference profile, False otherwise
+        """
+        return model_name in self._models_requiring_inference_profiles
+
+    def get_inference_profile_arn(
+        self, model_name: str, region: str, account_id: str
+    ) -> str:
+        """
+        Get the ARN for the inference profile.
+
+        Args:
+            model_name (str): The canonical model name
+            region (str): The AWS region
+            account_id (str): The AWS account ID
+        Returns:
+            str: The ARN for the inference profile
+        """
+        if not self.requires_inference_profile(model_name):
+            raise ValueError(
+                f"Model '{model_name}' does not require an inference profile"
+            )
+
+        region_prefix = region[:2]
+        model_id = self.get_vendor_model_id(model_name, Vendor.AWS)
+        return f"arn:aws:bedrock:{region}:{account_id}:inference-profile/{region_prefix}.{model_id}"
 
     def get_model(self, model_name: str) -> AIModel:
         """Get a model by name."""
