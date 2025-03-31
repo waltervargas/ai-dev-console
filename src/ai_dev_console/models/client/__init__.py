@@ -1,4 +1,4 @@
-""" Client Package """
+"""Client Package"""
 
 from .types import (
     ContentType,
