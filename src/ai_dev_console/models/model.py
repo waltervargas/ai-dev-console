@@ -65,7 +65,7 @@ class AIModel:
     training_cutoff: datetime
     description: str
     comparative_latency: str
-    vendor_model_id: Optional[str] = None  # Added to support vendor-specific IDs
+    vendor_model_id: Optional[str] = None
 
     @classmethod
     def claude_3_haiku(cls) -> "AIModel":
@@ -99,6 +99,13 @@ class SupportedModels:
     def __init__(self) -> None:
         # Model mappings between vendors
         self._model_mappings = {
+            "claude-3-7-sonnet-20250219": ModelMapping(
+                canonical_name="claude-3-7-sonnet-20250219",
+                vendor_ids={
+                    Vendor.ANTHROPIC: "claude-3-7-sonnet-20250219",
+                    Vendor.AWS: "anthropic.claude-3-7-sonnet-20250219-v1:0",
+                },
+            ),
             "claude-3-haiku-20240307": ModelMapping(
                 canonical_name="claude-3-haiku-20240307",
                 vendor_ids={
@@ -117,6 +124,21 @@ class SupportedModels:
 
         # Initialize available models
         self.available_models: Dict[str, AIModel] = {
+            "claude-3-7-sonnet-20250219": AIModel(
+                name="claude-3-7-sonnet-20250219",
+                vendor=Vendor.ANTHROPIC,
+                costs=ModelCosts(
+                    input_cost_per_million_tokens=Decimal("4.0"),
+                    output_cost_per_million_tokens=Decimal("20.0"),
+                ),
+                context_window=200000,
+                max_output_tokens=8192,
+                supports_vision=True,
+                supports_message_batches=True,
+                training_cutoff=datetime(2025, 2, 19),
+                description="Our most expressive model",
+                comparative_latency="Fast",
+            ),
             "claude-3-5-sonnet-20241022": AIModel(
                 name="claude-3-5-sonnet-20241022",
                 vendor=Vendor.ANTHROPIC,
