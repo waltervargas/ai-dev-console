@@ -122,6 +122,7 @@ class AnthropicMessage(TypedDict):
 
 class ThinkingConfig(TypedDict, total=False):
     """Configuration for Claude's thinking/extended reasoning."""
+
     type: Literal["enabled", "disabled"]
     budget_tokens: Optional[int]
 
