@@ -1,14 +1,16 @@
-from contextlib import _GeneratorContextManager, contextmanager
-from typing import Dict, Any, Iterator, Optional, Generator
 from abc import ABC, abstractmethod
+from contextlib import _GeneratorContextManager, contextmanager
+from typing import Any, Dict, Generator, Iterator, Optional
+
 import anthropic
 import boto3
 from botocore.config import Config
-from .types import ConverseRequest, ConverseResponse
-from .adapters import VendorAdapter
-from ..vendor import Vendor
+
 from ..exceptions import ModelClientError
 from ..model import SupportedModels
+from ..vendor import Vendor
+from .adapters import VendorAdapter
+from .types import ConverseRequest, ConverseResponse
 
 
 class ModelClient(ABC):
@@ -104,11 +106,16 @@ class AnthropicClient(ModelClient):
             adapted_request = self.adapter.adapt_request(request)
 
             with self.client.messages.stream(**adapted_request) as stream:
+                # Store the stream object so its response can be accessed later
+                self._stream = stream
 
                 def generate() -> str:
+                    self._generator = generate  # Store generator for access to response
                     for chunk in stream.text_stream:
                         if chunk:
                             yield chunk
+                    # After streaming completes, the full response is available
+                    self.response = stream.response
 
                 yield generate()
 
@@ -203,8 +210,17 @@ class AWSClient(ModelClient):
             # Get the stream response
             response = self.client.converse_stream(**adapted_request)
 
+            # Store the raw response for later access
+            self._raw_response = response
+
+            # Storage for completed message content
+            full_response_text = ""
+            complete_response = {}
+
             def generate() -> Iterator[str]:
+                nonlocal full_response_text
                 current_role = None
+                self._generator = generate  # Store reference to generator
 
                 for event in response["stream"]:
                     # Handle message start
@@ -220,7 +236,27 @@ class AWSClient(ModelClient):
                     if "contentBlockDelta" in event:
                         delta = event["contentBlockDelta"]["delta"]
                         if "text" in delta and delta["text"]:
+                            full_response_text += delta["text"]
                             yield delta["text"]
+
+                    # Handle message complete - extract any thinking
+                    if "messageComplete" in event:
+                        # Check for content in the message that contains reasoning
+                        if "message" in event["messageComplete"]:
+                            message = event["messageComplete"]["message"]
+                            if "content" in message:
+                                for content_block in message["content"]:
+                                    # Check for reasoningContent which contains the thinking in AWS Bedrock
+                                    if "reasoningContent" in content_block:
+                                        if (
+                                            "reasoningText"
+                                            in content_block["reasoningContent"]
+                                        ):
+                                            complete_response["thinking"] = {
+                                                "text": content_block[
+                                                    "reasoningContent"
+                                                ]["reasoningText"]["text"]
+                                            }
 
                     # Handle errors
                     for error_type in [
@@ -234,6 +270,10 @@ class AWSClient(ModelClient):
                             raise ModelClientError(
                                 f"AWS Bedrock error: {event[error_type]['message']}"
                             )
+
+                # After streaming is complete, store the final response
+                complete_response["text"] = full_response_text
+                self.response = complete_response
 
             yield generate()
         except Exception as e:

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-from enum import Enum
-from typing import List, Dict, Any, Literal, Optional, TypedDict, Union
 from datetime import datetime
+from enum import Enum
+from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
 
 
 # Common Enums and Base Types
@@ -77,6 +77,9 @@ class AWSRequestDict(TypedDict, total=False):
     messages: List[AWSMessage]
     inferenceConfig: InferenceConfigDict
     system: List[MessageContent]
+    additionalModelRequestFields: Dict[
+        str, Any
+    ]  # For model-specific options like Claude's thinking
 
 
 # Anthropic-specific Types
@@ -162,6 +165,7 @@ class ContentBlock:
     text: Optional[str] = None
     image: Optional[Dict[str, Any]] = None
     document: Optional[Dict[str, Any]] = None
+    thinking: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert the content block to a dictionary format."""
@@ -172,6 +176,8 @@ class ContentBlock:
             result["image"] = self.image
         if self.document is not None:
             result["document"] = self.document
+        if self.thinking is not None:
+            result["thinking"] = self.thinking
         return result
 
 
@@ -212,8 +218,8 @@ class InferenceConfiguration:
         if self.max_tokens is not None:
             if self.max_tokens <= 0:
                 raise ValueError("Max tokens must be positive")
-            if self.max_tokens > 8192:
-                raise ValueError("Max tokens cannot exceed 8192")
+            if self.max_tokens > 64000:
+                raise ValueError("Max tokens cannot exceed 64000")
 
         if self.stop_sequences is not None:
             if not isinstance(self.stop_sequences, list):
@@ -272,6 +278,7 @@ class ConverseResponse:
     stop_reason: Optional[str] = None
     usage: Optional[Dict[str, int]] = None
     metrics: Optional[Dict[str, Any]] = None
+    thinking: Optional[Dict[str, Any]] = None  # Contains Claude's thinking process
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "ConverseResponse":
@@ -288,4 +295,5 @@ class ConverseResponse:
             stop_reason=data.get("stop_reason"),
             usage=data.get("usage"),
             metrics=data.get("metrics"),
+            thinking=data.get("thinking"),
         )
