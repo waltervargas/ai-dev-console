@@ -1,24 +1,25 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Any, Literal, Union, List, cast
+from typing import Any, Dict, List, Literal, Union, cast
+
+from ..model import SupportedModels
+from ..vendor import Vendor
 from .types import (
+    AnthropicContentBlock,
     AnthropicImageContent,
+    AnthropicMessage,
+    AnthropicRequestDict,
     AnthropicTextContent,
+    AWSMessage,
+    AWSRequestDict,
+    ContentBlock,
     ConverseRequest,
     ConverseResponse,
-    Message,
-    ContentBlock,
-    Role,
     InferenceConfigDict,
-    AWSRequestDict,
-    AnthropicRequestDict,
-    VendorRequestDict,
+    Message,
     MessageContent,
-    AnthropicMessage,
-    AWSMessage,
-    AnthropicContentBlock,
+    Role,
+    VendorRequestDict,
 )
-from ..vendor import Vendor
-from ..model import SupportedModels
 
 
 class VendorAdapter(ABC):
@@ -120,7 +121,24 @@ class AnthropicAdapter(VendorAdapter):
             adapted["system"] = request.system
 
         # Add thinking/extended reasoning for Claude 3.7 models when enabled
-        if request.thinking_enabled and "claude-3-7" in request.model_id:
+        if request.thinking_enabled:
+            # Always add thinking support if it's enabled (even if model doesn't support it)
+            # The API will simply ignore it for unsupported models
+
+            # Debug the model ID for troubleshooting
+            model_id_lower = request.model_id.lower()
+            model_supports_3_7 = (
+                "claude-3-7" in model_id_lower
+                or "claude-3.7" in model_id_lower
+                or "claude3.7" in model_id_lower
+                or "claude-3-sonnet" in model_id_lower
+            )
+
+            print(
+                f"Anthropic adapter: Enabling thinking for model: {request.model_id} (supports_3_7: {model_supports_3_7})"
+            )
+
+            # For direct Anthropic API, the thinking field is at the top level
             adapted["thinking"] = {
                 "type": "enabled",
                 "budget_tokens": request.thinking_budget,
@@ -141,11 +159,18 @@ class AnthropicAdapter(VendorAdapter):
             )
             for msg in response["messages"]
         ]
+
+        # Extract thinking content if available in the response
+        thinking_content = None
+        if "thinking" in response:
+            thinking_content = response["thinking"]
+
         return ConverseResponse(
             messages=messages,
             stop_reason=response.get("stop_reason"),
             usage=response.get("usage"),
             metrics=response.get("metrics"),
+            thinking=thinking_content,
         )
 
 
@@ -171,6 +196,11 @@ class AWSAdapter(VendorAdapter):
             "messages": messages,
         }
 
+        # Add system message if provided
+        if request.system:
+            adapted["system"] = [{"text": request.system}]
+
+        # Always add inferenceConfig if provided
         if request.inference_config:
             inference: InferenceConfigDict = {}
 
@@ -188,25 +218,50 @@ class AWSAdapter(VendorAdapter):
             if inference:  # Only add if there are actual values
                 adapted["inferenceConfig"] = inference
 
-        if request.system:
-            adapted["system"] = [{"text": request.system}]
+        # Add reasoning config (thinking) for Claude 3.7 models when enabled
+        if request.thinking_enabled and "claude-3-7" in request.model_id:
+            # For AWS Bedrock, the parameter is named "reasoning_config"
+            adapted["additionalModelRequestFields"] = {
+                "reasoning_config": {
+                    "type": "enabled",
+                    "budget_tokens": request.thinking_budget,
+                }
+            }
 
         return adapted
 
     def adapt_response(self, response: Dict[str, Any]) -> ConverseResponse:
         """Convert vendor-specific response to our format."""
+        messages = []
+
+        for msg in response["messages"]:
+            content_blocks = []
+
+            for block in msg["content"]:
+                # Handle text blocks
+                if "text" in block:
+                    content_blocks.append(ContentBlock(text=block["text"]))
+                # Handle reasoning/thinking content
+                elif "reasoningContent" in block:
+                    if "reasoningText" in block["reasoningContent"]:
+                        content_blocks.append(
+                            ContentBlock(
+                                thinking={
+                                    "text": block["reasoningContent"]["reasoningText"][
+                                        "text"
+                                    ]
+                                }
+                            )
+                        )
+
+            if content_blocks:
+                messages.append(Message(role=Role(msg["role"]), content=content_blocks))
+
         return ConverseResponse(
-            messages=[
-                Message(
-                    role=Role(msg["role"]),
-                    content=[
-                        ContentBlock(text=block["text"])
-                        for block in msg["content"]
-                        if "text" in block
-                    ],
-                )
-                for msg in response["messages"]
-            ],
+            messages=messages,
+            stop_reason=response.get("stopReason"),
+            usage=response.get("usage"),
+            metrics=response.get("metrics"),
         )
 
 

@@ -1,21 +1,20 @@
+from typing import Any, Dict, List
+
 import streamlit as st
-from typing import Dict, Any, List
-
-from ai_dev_console.models import (
-    Message,
-    ContentBlock,
-    ConverseRequest,
-    Role,
-    Vendor,
-    ModelClientFactory,
-    InferenceConfiguration,
-    ModelClientError,
-)
-from ai_dev_console.models.model import SupportedModels
-
+from aws import saml_auth_component
 from session_storage import FileSessionStorage
 
-from aws import saml_auth_component
+from ai_dev_console.models import (
+    ContentBlock,
+    ConverseRequest,
+    InferenceConfiguration,
+    Message,
+    ModelClientError,
+    ModelClientFactory,
+    Role,
+    Vendor,
+)
+from ai_dev_console.models.model import SupportedModels
 
 
 def init_session_state():
@@ -134,7 +133,7 @@ def get_sidebar_config() -> Dict[str, Any]:
 
         temperature = st.slider("Temperature", min_value=0.0, max_value=2.0, value=0.4)
         max_tokens = st.number_input(
-            "Max Tokens", min_value=100, max_value=4096, value=4096
+            "Max Tokens", min_value=100, max_value=200000, value=8192, step=1000
         )
         top_k = st.number_input("Top K", min_value=0, max_value=100, value=5, step=1)
 
@@ -144,9 +143,11 @@ def get_sidebar_config() -> Dict[str, Any]:
         if model and "claude-3-7" in model:
             st.markdown("---")
             st.subheader("Extended Reasoning")
+
             thinking_enabled = st.checkbox(
                 "Enable thinking/extended reasoning", value=False
             )
+
             if thinking_enabled:
                 thinking_budget = st.slider(
                     "Thinking budget (tokens)",
@@ -165,6 +166,9 @@ def get_sidebar_config() -> Dict[str, Any]:
             st.session_state.messages = []
             st.rerun()
 
+        # Enable thinking for Claude 3.7 models on both Anthropic and AWS
+        thinking_is_supported = "claude-3-7" in model
+
         return {
             "vendor": current_vendor,
             "model": model,
@@ -173,7 +177,7 @@ def get_sidebar_config() -> Dict[str, Any]:
             "max_tokens": max_tokens,
             "top_k": top_k,
             "system_prompt": system_prompt,
-            "thinking_enabled": thinking_enabled if "claude-3-7" in model else False,
+            "thinking_enabled": thinking_enabled if thinking_is_supported else False,
             "thinking_budget": thinking_budget,
         }
 
@@ -213,6 +217,12 @@ def process_chat_stream(client, request: ConverseRequest, placeholder: st.empty)
             "thinking_budget": (
                 request.thinking_budget if request.thinking_enabled else None
             ),
+            "model_id_for_thinking": request.model_id,
+            "model_contains_claude_3_7": (
+                "claude-3-7" in request.model_id
+                or "claude-3.7" in request.model_id
+                or "claude3.7" in request.model_id
+            ),
             "inference_config": {
                 "temperature": request.inference_config.temperature,
                 "max_tokens": request.inference_config.max_tokens,
@@ -239,9 +249,33 @@ def process_chat_stream(client, request: ConverseRequest, placeholder: st.empty)
         if client.vendor == Vendor.ANTHROPIC:
             adapted_request = client.adapter.adapt_request(request)
             debug_info["adapted_anthropic_request"] = adapted_request
+            # Highlight thinking configuration if enabled
+            if request.thinking_enabled and "thinking" in adapted_request:
+                debug_info["extended_thinking"] = {
+                    "enabled": True,
+                    "budget_tokens": adapted_request["thinking"].get(
+                        "budget_tokens", 16000
+                    ),
+                }
         elif client.vendor == Vendor.AWS:
             adapted_request = client.adapter.adapt_request(request)
             debug_info["adapted_aws_request"] = adapted_request
+            # Highlight thinking configuration if enabled
+            if request.thinking_enabled:
+                # Look for reasoning_config in additionalModelRequestFields
+                if (
+                    "additionalModelRequestFields" in adapted_request
+                    and "reasoning_config"
+                    in adapted_request["additionalModelRequestFields"]
+                ):
+                    reasoning_config = adapted_request["additionalModelRequestFields"][
+                        "reasoning_config"
+                    ]
+                    debug_info["extended_thinking"] = {
+                        "enabled": True,
+                        "budget_tokens": reasoning_config.get("budget_tokens", 16000),
+                        "source": "additionalModelRequestFields.reasoning_config",
+                    }
 
         debug_info["request"] = request_dict
         st.session_state["debug_info"] = debug_info
@@ -263,6 +297,36 @@ def process_chat_stream(client, request: ConverseRequest, placeholder: st.empty)
                 placeholder.markdown(response_text + "▌")
 
             placeholder.markdown(response_text)
+
+            # Extract thinking content from the response
+            thinking_content = None
+
+            # Check client object for response with thinking content
+            if hasattr(client, "response") and client.response:
+                if isinstance(client.response, dict) and "thinking" in client.response:
+                    thinking_content = client.response["thinking"]
+                elif hasattr(client.response, "thinking"):
+                    thinking_content = client.response.thinking
+
+            # For Anthropic: try accessing through the stream property
+            if (
+                not thinking_content
+                and hasattr(client, "_stream")
+                and hasattr(client._stream, "response")
+            ):
+                if hasattr(client._stream.response, "thinking"):
+                    thinking_content = client._stream.response.thinking
+
+            # Store thinking content in session state if available
+            if thinking_content:
+                st.session_state["thinking_content"] = thinking_content
+                # Also add to debug info for convenience
+                if "debug_info" in st.session_state:
+                    st.session_state["debug_info"]["claude_thinking"] = {
+                        "available": True,
+                        "content_type": type(thinking_content).__name__,
+                    }
+
             return response_text
 
     except Exception as e:
@@ -372,10 +436,80 @@ def main():
                         )
                     )
 
-                    # If debug_info is available, display it in a collapsed expander
-                    if "debug_info" in st.session_state:
-                        with st.expander("Debug Info (Click to expand)"):
-                            st.json(st.session_state["debug_info"])
+                    # Display debug info and thinking content if available
+                    col1, col2 = st.columns(2)
+
+                    with col1:
+                        if "debug_info" in st.session_state:
+                            with st.expander("Debug Info (Click to expand)"):
+                                st.json(st.session_state["debug_info"])
+
+                    with col2:
+                        # Show thinking expander either if thinking content exists or if thinking was enabled
+                        if "thinking_content" in st.session_state or (
+                            "debug_info" in st.session_state
+                            and "extended_thinking" in st.session_state["debug_info"]
+                        ):
+                            with st.expander(
+                                "Claude's Thinking Process (Click to expand)"
+                            ):
+                                thinking = st.session_state.get("thinking_content")
+
+                                if thinking is None or (
+                                    isinstance(thinking, dict) and not thinking
+                                ):
+                                    st.warning(
+                                        "Extended reasoning was enabled but no thinking content was returned by the model."
+                                    )
+                                    if "debug_info" in st.session_state:
+                                        if (
+                                            "extended_thinking"
+                                            in st.session_state["debug_info"]
+                                        ):
+                                            st.markdown("#### Debug Information")
+                                            st.json(
+                                                st.session_state["debug_info"][
+                                                    "extended_thinking"
+                                                ]
+                                            )
+                                else:
+                                    # Anthropic format
+                                    if (
+                                        isinstance(thinking, dict)
+                                        and "value" in thinking
+                                    ):
+                                        st.markdown("### Extended Reasoning")
+                                        st.markdown(f"```\n{thinking['value']}\n```")
+
+                                    # AWS format
+                                    elif (
+                                        isinstance(thinking, dict)
+                                        and "text" in thinking
+                                    ):
+                                        st.markdown("### Extended Reasoning")
+                                        st.markdown(f"```\n{thinking['text']}\n```")
+
+                                    # Simple string format
+                                    elif isinstance(thinking, str):
+                                        st.markdown("### Extended Reasoning")
+                                        st.markdown(f"```\n{thinking}\n```")
+
+                                    # Unknown format - display as JSON
+                                    else:
+                                        st.markdown(
+                                            "### Extended Reasoning (Raw Format)"
+                                        )
+                                        st.json(thinking)
+
+                                # Display token usage if available
+                                if (
+                                    "usage" in st.session_state.get("debug_info", {})
+                                    and "thinking_tokens"
+                                    in st.session_state["debug_info"]["usage"]
+                                ):
+                                    st.caption(
+                                        f"Thinking tokens used: {st.session_state['debug_info']['usage']['thinking_tokens']}"
+                                    )
 
             except ModelClientError as e:
                 st.session_state.messages.pop()
