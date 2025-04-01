@@ -114,8 +114,12 @@ class AnthropicClient(ModelClient):
                     for chunk in stream.text_stream:
                         if chunk:
                             yield chunk
-                    # After streaming completes, the full response is available
-                    self.response = stream.response
+                    # After streaming completes, try to store the full response
+                    # using method appropriate for the stream object
+                    if hasattr(stream, "response"):
+                        self.response = stream.response
+                    elif hasattr(stream, "get_final_message"):
+                        self.response = stream.get_final_message()
 
                 yield generate()
 
