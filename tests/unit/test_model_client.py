@@ -1,16 +1,12 @@
+from typing import Any, Dict, List
+from unittest.mock import ANY, Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, ANY
-from typing import List, Dict, Any
-from ai_dev_console.models import (
-    ModelClient,
-    Message,
-    ContentBlock,
-    InferenceConfiguration,
-    ConverseRequest,
-    ModelClientFactory,
-    Role,
-    Vendor,
-)
+
+from ai_dev_console.models import (ContentBlock, ConverseRequest,
+                                   InferenceConfiguration, Message,
+                                   ModelClient, ModelClientFactory, Role,
+                                   Vendor)
 from ai_dev_console.models.client.adapters import VendorAdapter
 from ai_dev_console.models.client.base import AWSClient
 

@@ -1,18 +1,9 @@
 """Client Package"""
 
-from .types import (
-    ContentType,
-    Role,
-    ContentBlock,
-    Message,
-    InferenceConfiguration,
-    ConverseRequest,
-    ConverseResponse,
-)
-
 from .adapters import VendorAdapter
-
-from .base import ModelClient, AnthropicClient, AWSClient, ModelClientFactory
+from .base import AnthropicClient, AWSClient, ModelClient, ModelClientFactory
+from .types import (ContentBlock, ContentType, ConverseRequest,
+                    ConverseResponse, InferenceConfiguration, Message, Role)
 
 __all__ = [
     "ContentType",

@@ -1,17 +1,11 @@
-import sys
 import argparse
-from typing import Optional, List
 import os
+import sys
+from typing import List, Optional
 
-from ai_dev_console.models import (
-    Message,
-    ContentBlock,
-    ConverseRequest,
-    Role,
-    Vendor,
-    ModelClientFactory,
-    InferenceConfiguration,
-)
+from ai_dev_console.models import (ContentBlock, ConverseRequest,
+                                   InferenceConfiguration, Message,
+                                   ModelClientFactory, Role, Vendor)
 
 
 def parse_arguments(args: Optional[List[str]] = None) -> argparse.Namespace:

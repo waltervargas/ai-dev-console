@@ -1,18 +1,12 @@
-import pytest
-from unittest.mock import Mock, patch, ANY
 from contextlib import contextmanager
 from typing import Iterator, List
+from unittest.mock import ANY, Mock, patch
 
-from ai_dev_console.models import (
-    ModelClient,
-    Message,
-    ContentBlock,
-    InferenceConfiguration,
-    ConverseRequest,
-    Role,
-    Vendor,
-    ModelClientError,
-)
+import pytest
+
+from ai_dev_console.models import (ContentBlock, ConverseRequest,
+                                   InferenceConfiguration, Message,
+                                   ModelClient, ModelClientError, Role, Vendor)
 
 
 class TestModelClientStreaming:
