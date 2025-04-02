@@ -1,23 +1,25 @@
 from typing import Any, Dict, List
 
 import streamlit as st
-from aws import saml_auth_component
-from session_storage import FileSessionStorage
+from typing import Dict, Any, List, Optional, Iterator
 
 from ai_dev_console.models import (
+    Message,
     ContentBlock,
     ConverseRequest,
-    InferenceConfiguration,
-    Message,
-    ModelClientError,
-    ModelClientFactory,
     Role,
     Vendor,
+    ModelClientFactory,
+    InferenceConfiguration,
+    ModelClientError,
 )
 from ai_dev_console.models.model import SupportedModels
 
+# Local imports from the same package
+from .aws import saml_auth_component
 
-def init_session_state():
+
+def init_session_state() -> None:
     """Initialize session state variables, including loading from a saved file."""
     if "messages" not in st.session_state:
         st.session_state.messages = []
@@ -25,18 +27,11 @@ def init_session_state():
         st.session_state.client = None
     if "supported_models" not in st.session_state:
         st.session_state.supported_models = SupportedModels()
-    if "session_storage" not in st.session_state:
-        st.session_state.session_storage = FileSessionStorage()
-
-    # Load the last saved session, if available
-    last_session = st.session_state.session_storage.list_sessions()
-    if last_session:
-        st.session_state.session_name = last_session[0]
-        st.session_state.last_saved_state = (
-            st.session_state.session_storage.load_session(st.session_state.session_name)
-        )
-    else:
+    
+    # Initialize default values
+    if "session_name" not in st.session_state:
         st.session_state.session_name = "New Chat"
+    if "last_saved_state" not in st.session_state:
         st.session_state.last_saved_state = {}
 
 
@@ -81,19 +76,7 @@ def get_sidebar_config() -> Dict[str, Any]:
             st.session_state.session_name = "New Chat"
             st.session_state.last_saved_state = {}
 
-        available_sessions = st.session_state.session_storage.list_sessions()
-        if available_sessions:
-            selected_session = st.selectbox(
-                "Load Chat", options=available_sessions, index=0
-            )
-            if st.button("Load Chat"):
-                st.session_state.last_saved_state = (
-                    st.session_state.session_storage.load_session(selected_session)
-                )
-                st.session_state.session_name = selected_session
-                st.session_state.messages = st.session_state.last_saved_state.get(
-                    "messages", []
-                )
+        # Session management removed
 
         vendor = st.selectbox(
             "Vendor",
@@ -182,7 +165,7 @@ def get_sidebar_config() -> Dict[str, Any]:
         }
 
 
-def on_vendor_change():
+def on_vendor_change() -> None:
     """Handle vendor change by updating model selection."""
     if "vendor" in st.session_state:
         current_vendor = Vendor(st.session_state.vendor)
@@ -191,14 +174,14 @@ def on_vendor_change():
             st.session_state.model = available_models[0]
 
 
-def display_chat_messages():
+def display_chat_messages() -> None:
     """Display chat message history."""
     for msg in st.session_state.messages:
         with st.chat_message(msg.role.value):
             st.write(msg.content[0].text)
 
 
-def process_chat_stream(client, request: ConverseRequest, placeholder: st.empty):
+def process_chat_stream(client: Any, request: ConverseRequest, placeholder: Any) -> Optional[str]:
     """Handle streaming chat response."""
     try:
         # Print request details for debugging
@@ -337,7 +320,7 @@ def process_chat_stream(client, request: ConverseRequest, placeholder: st.empty)
         raise ModelClientError(error_msg)
 
 
-def prepare_messages_for_request(messages):
+def prepare_messages_for_request(messages: List[Message]) -> List[Message]:
     prepared_messages = []
     for msg in messages:
         if msg.role in [Role.USER, Role.ASSISTANT]:
@@ -350,7 +333,7 @@ def prepare_messages_for_request(messages):
     return prepared_messages
 
 
-def main():
+def main() -> None:
     st.set_page_config(page_title="AI Dev Console", layout="wide")
     init_session_state()
 

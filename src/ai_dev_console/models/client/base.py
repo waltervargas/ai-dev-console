@@ -1,7 +1,6 @@
+from contextlib import contextmanager
+from typing import Dict, Any, Iterator, Optional, Generator, TypeVar, Generic, ContextManager
 from abc import ABC, abstractmethod
-from contextlib import _GeneratorContextManager, contextmanager
-from typing import Any, Dict, Generator, Iterator, Optional
-
 import anthropic
 import boto3
 from botocore.config import Config
@@ -32,7 +31,7 @@ class ModelClient(ABC):
         pass
 
     @contextmanager
-    def converse_stream(self, request: ConverseRequest) -> Iterator[str]:
+    def converse_stream(self, request: ConverseRequest) -> ContextManager[Iterator[str]]:
         """
         Stream model responses.
 
@@ -99,7 +98,7 @@ class AnthropicClient(ModelClient):
     @contextmanager
     def converse_stream(
         self, request: ConverseRequest
-    ) -> _GeneratorContextManager[str]:
+    ) -> ContextManager[Iterator[str]]:
         """Stream response from Anthropic's API."""
         try:
             request.validate()
@@ -110,7 +109,6 @@ class AnthropicClient(ModelClient):
                 self._stream = stream
 
                 def generate() -> str:
-                    self._generator = generate  # Store generator for access to response
                     for chunk in stream.text_stream:
                         if chunk:
                             yield chunk
@@ -194,7 +192,7 @@ class AWSClient(ModelClient):
         raise NotImplementedError("Async operations not supported for Bedrock")
 
     @contextmanager
-    def converse_stream(self, request: ConverseRequest) -> Iterator[Iterator[str]]:
+    def converse_stream(self, request: ConverseRequest) -> ContextManager[Iterator[str]]:
         """
         Stream response from AWS Bedrock API.
 
@@ -331,4 +329,4 @@ def get_aws_account_id(client: "boto3.client") -> str:
     except (AttributeError, ValueError):
         # Fall back to STS GetCallerIdentity
         sts_client = boto3.client("sts")
-        return sts_client.get_caller_identity()["Account"]
+        return str(sts_client.get_caller_identity()["Account"])
