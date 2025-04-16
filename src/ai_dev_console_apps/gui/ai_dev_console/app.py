@@ -15,8 +15,8 @@ from ai_dev_console.models import (
 )
 from ai_dev_console.models.model import SupportedModels
 
-# Local imports from the same package
-from .aws import saml_auth_component
+# # Local imports from the same package
+# from .aws import saml_auth_component
 
 
 def init_session_state() -> None:
@@ -68,9 +68,6 @@ def get_sidebar_config() -> Dict[str, Any]:
     with st.sidebar:
         st.title("AI Dev Console")
 
-        with st.expander("AWS SAML Authentication"):
-            saml_auth_component()
-
         if st.button("New Chat"):
             st.session_state.messages = []
             st.session_state.session_name = "New Chat"
@@ -116,7 +113,7 @@ def get_sidebar_config() -> Dict[str, Any]:
 
         temperature = st.slider("Temperature", min_value=0.0, max_value=2.0, value=0.4)
         max_tokens = st.number_input(
-            "Max Tokens", min_value=100, max_value=200000, value=8192, step=1000
+            "Max Tokens", min_value=100, max_value=120000, value=8092
         )
         top_k = st.number_input("Top K", min_value=0, max_value=100, value=5, step=1)
 
