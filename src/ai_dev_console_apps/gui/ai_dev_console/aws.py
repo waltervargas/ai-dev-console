@@ -52,7 +52,9 @@ def parse_roles(roles: list[str]) -> dict[str, list[dict[str, str]]]:
 
 
 # Assume a role using AssumeRoleWithSAML API
-def assume_role_with_saml(saml_assertion: str, role_arn: str, saml_provider_arn: str) -> dict[str, Any]:
+def assume_role_with_saml(
+    saml_assertion: str, role_arn: str, saml_provider_arn: str
+) -> dict[str, Any]:
     try:
         session = boto3.session.Session()
         sts_client = session.client("sts")
@@ -80,7 +82,9 @@ def assume_role_with_saml(saml_assertion: str, role_arn: str, saml_provider_arn:
         raise ValueError(f"Failed to assume role: {e}")
 
 
-def get_role_options(selected_account: str, parsed_roles: dict[str, list[dict[str, str]]]) -> list[str]:
+def get_role_options(
+    selected_account: str, parsed_roles: dict[str, list[dict[str, str]]]
+) -> list[str]:
     role_options = []
     for account_id, role_list in parsed_roles.items():
         if account_id == selected_account:
@@ -89,14 +93,20 @@ def get_role_options(selected_account: str, parsed_roles: dict[str, list[dict[st
     return role_options
 
 
-def get_saml_provider_arn(selected_account: str, parsed_roles: dict[str, list[dict[str, str]]]) -> str:
+def get_saml_provider_arn(
+    selected_account: str, parsed_roles: dict[str, list[dict[str, str]]]
+) -> str:
     for account_id, role_list in parsed_roles.items():
         if account_id == selected_account:
             for role in role_list:
                 return role["saml_provider_arn"]
 
 
-def get_role_arn(selected_account: str, selected_role: str, parsed_roles: dict[str, list[dict[str, str]]]) -> str:
+def get_role_arn(
+    selected_account: str,
+    selected_role: str,
+    parsed_roles: dict[str, list[dict[str, str]]],
+) -> str:
     for account_id, role_list in parsed_roles.items():
         if account_id == selected_account:
             for role in role_list:

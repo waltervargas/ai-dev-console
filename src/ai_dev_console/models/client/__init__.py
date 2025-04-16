@@ -2,8 +2,15 @@
 
 from .adapters import VendorAdapter
 from .base import AnthropicClient, AWSClient, ModelClient, ModelClientFactory
-from .types import (ContentBlock, ContentType, ConverseRequest,
-                    ConverseResponse, InferenceConfiguration, Message, Role)
+from .types import (
+    ContentBlock,
+    ContentType,
+    ConverseRequest,
+    ConverseResponse,
+    InferenceConfiguration,
+    Message,
+    Role,
+)
 
 __all__ = [
     "ContentType",

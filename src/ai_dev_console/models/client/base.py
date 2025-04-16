@@ -1,5 +1,14 @@
 from contextlib import contextmanager
-from typing import Dict, Any, Iterator, Optional, Generator, TypeVar, Generic, ContextManager
+from typing import (
+    Dict,
+    Any,
+    Iterator,
+    Optional,
+    Generator,
+    TypeVar,
+    Generic,
+    ContextManager,
+)
 from abc import ABC, abstractmethod
 import anthropic
 import boto3
@@ -31,7 +40,9 @@ class ModelClient(ABC):
         pass
 
     @contextmanager
-    def converse_stream(self, request: ConverseRequest) -> ContextManager[Iterator[str]]:
+    def converse_stream(
+        self, request: ConverseRequest
+    ) -> ContextManager[Iterator[str]]:
         """
         Stream model responses.
 
@@ -192,7 +203,9 @@ class AWSClient(ModelClient):
         raise NotImplementedError("Async operations not supported for Bedrock")
 
     @contextmanager
-    def converse_stream(self, request: ConverseRequest) -> ContextManager[Iterator[str]]:
+    def converse_stream(
+        self, request: ConverseRequest
+    ) -> ContextManager[Iterator[str]]:
         """
         Stream response from AWS Bedrock API.
 

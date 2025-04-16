@@ -27,7 +27,7 @@ def init_session_state() -> None:
         st.session_state.client = None
     if "supported_models" not in st.session_state:
         st.session_state.supported_models = SupportedModels()
-    
+
     # Initialize default values
     if "session_name" not in st.session_state:
         st.session_state.session_name = "New Chat"
@@ -178,7 +178,9 @@ def display_chat_messages() -> None:
             st.write(msg.content[0].text)
 
 
-def process_chat_stream(client: Any, request: ConverseRequest, placeholder: Any) -> Optional[str]:
+def process_chat_stream(
+    client: Any, request: ConverseRequest, placeholder: Any
+) -> Optional[str]:
     """Handle streaming chat response."""
     try:
         # Print request details for debugging

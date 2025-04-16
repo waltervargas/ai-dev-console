@@ -4,9 +4,16 @@ from unittest.mock import ANY, Mock, patch
 
 import pytest
 
-from ai_dev_console.models import (ContentBlock, ConverseRequest,
-                                   InferenceConfiguration, Message,
-                                   ModelClient, ModelClientError, Role, Vendor)
+from ai_dev_console.models import (
+    ContentBlock,
+    ConverseRequest,
+    InferenceConfiguration,
+    Message,
+    ModelClient,
+    ModelClientError,
+    Role,
+    Vendor,
+)
 
 
 class TestModelClientStreaming:

@@ -3,9 +3,15 @@ import os
 import sys
 from typing import List, Optional
 
-from ai_dev_console.models import (ContentBlock, ConverseRequest,
-                                   InferenceConfiguration, Message,
-                                   ModelClientFactory, Role, Vendor)
+from ai_dev_console.models import (
+    ContentBlock,
+    ConverseRequest,
+    InferenceConfiguration,
+    Message,
+    ModelClientFactory,
+    Role,
+    Vendor,
+)
 
 
 def parse_arguments(args: Optional[List[str]] = None) -> argparse.Namespace:
