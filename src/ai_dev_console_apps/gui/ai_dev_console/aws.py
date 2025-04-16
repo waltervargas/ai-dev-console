@@ -1,8 +1,10 @@
-import pyperclip
-import boto3
 import base64
-import xml.etree.ElementTree as ET
 import os
+import xml.etree.ElementTree as ET
+from typing import Dict, List, Any, Optional
+
+import boto3
+import pyperclip
 import streamlit as st
 
 from ai_dev_console.models.client.base import ModelClientFactory
@@ -19,7 +21,7 @@ def decode_saml_assertion(saml_assertion: str) -> ET.Element:
 
 
 # Extract AWS account IDs and roles
-def extract_roles_from_saml(saml_xml: ET.Element):
+def extract_roles_from_saml(saml_xml: ET.Element) -> list[str]:
     roles = []
     # Search for Attribute elements containing roles
     for attr in saml_xml.findall(".//{urn:oasis:names:tc:SAML:2.0:assertion}Attribute"):
@@ -32,7 +34,7 @@ def extract_roles_from_saml(saml_xml: ET.Element):
 
 
 # Parse role ARNs and organize by account ID
-def parse_roles(roles: list):
+def parse_roles(roles: list[str]) -> dict[str, list[dict[str, str]]]:
     parsed_roles = {}
     for role in roles:
         role_arn, saml_provider_arn = role.split(",")
@@ -50,7 +52,9 @@ def parse_roles(roles: list):
 
 
 # Assume a role using AssumeRoleWithSAML API
-def assume_role_with_saml(saml_assertion: str, role_arn: str, saml_provider_arn: str):
+def assume_role_with_saml(
+    saml_assertion: str, role_arn: str, saml_provider_arn: str
+) -> dict[str, Any]:
     try:
         session = boto3.session.Session()
         sts_client = session.client("sts")
@@ -78,7 +82,9 @@ def assume_role_with_saml(saml_assertion: str, role_arn: str, saml_provider_arn:
         raise ValueError(f"Failed to assume role: {e}")
 
 
-def get_role_options(selected_account: str, parsed_roles: dict):
+def get_role_options(
+    selected_account: str, parsed_roles: dict[str, list[dict[str, str]]]
+) -> list[str]:
     role_options = []
     for account_id, role_list in parsed_roles.items():
         if account_id == selected_account:
@@ -87,14 +93,20 @@ def get_role_options(selected_account: str, parsed_roles: dict):
     return role_options
 
 
-def get_saml_provider_arn(selected_account: str, parsed_roles: dict):
+def get_saml_provider_arn(
+    selected_account: str, parsed_roles: dict[str, list[dict[str, str]]]
+) -> str:
     for account_id, role_list in parsed_roles.items():
         if account_id == selected_account:
             for role in role_list:
                 return role["saml_provider_arn"]
 
 
-def get_role_arn(selected_account, selected_role: str, parsed_roles: dict):
+def get_role_arn(
+    selected_account: str,
+    selected_role: str,
+    parsed_roles: dict[str, list[dict[str, str]]],
+) -> str:
     for account_id, role_list in parsed_roles.items():
         if account_id == selected_account:
             for role in role_list:
@@ -102,7 +114,7 @@ def get_role_arn(selected_account, selected_role: str, parsed_roles: dict):
                     return role["role_arn"]
 
 
-def saml_auth_component():
+def saml_auth_component() -> None:
     if "saml_assertion" not in st.session_state:
         st.session_state.saml_assertion = ""
     if "selected_account" not in st.session_state:
@@ -185,7 +197,7 @@ def saml_auth_component():
             st.error(f"Invalid SAML assertion: {e}")
 
 
-def main():
+def main() -> None:
     # Retrieve the SAML assertion from the clipboard
     print("Fetching SAML assertion from clipboard...")
     saml_assertion_base64 = pyperclip.paste().strip()

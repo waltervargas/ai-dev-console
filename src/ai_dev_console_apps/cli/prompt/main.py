@@ -1,16 +1,16 @@
-import sys
 import argparse
-from typing import Optional, List
 import os
+import sys
+from typing import List, Optional
 
 from ai_dev_console.models import (
-    Message,
     ContentBlock,
     ConverseRequest,
+    InferenceConfiguration,
+    Message,
+    ModelClientFactory,
     Role,
     Vendor,
-    ModelClientFactory,
-    InferenceConfiguration,
 )
 
 

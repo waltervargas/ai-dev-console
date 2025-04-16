@@ -134,7 +134,7 @@ class SupportedModels:
                     output_cost_per_million_tokens=Decimal("15.0"),
                 ),
                 context_window=200000,
-                max_output_tokens=8192,
+                max_output_tokens=64000,
                 supports_vision=True,
                 supports_message_batches=True,
                 training_cutoff=datetime(2025, 2, 19),
