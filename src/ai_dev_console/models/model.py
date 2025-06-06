@@ -125,97 +125,116 @@ class SupportedModels:
             "claude-3-7-sonnet-20250219",
         }
 
+        # Mapping of canonical model names to vendor specific versions.  Previous
+        # versions of this code attempted to initialise ``available_models`` with
+        # duplicate keys which resulted in the first definitions silently being
+        # overwritten.  The structure below keeps each canonical model only once
+        # and stores the vendor specific variants in a nested dictionary.
+        self._models_by_vendor: Dict[str, Dict[Vendor, AIModel]] = {
+            "claude-3-7-sonnet-20250219": {
+                Vendor.AWS: AIModel(
+                    name="claude-3-7-sonnet-20250219",
+                    vendor=Vendor.AWS,
+                    costs=ModelCosts(
+                        input_cost_per_million_tokens=Decimal("3.0"),
+                        output_cost_per_million_tokens=Decimal("15.0"),
+                    ),
+                    context_window=200000,
+                    max_output_tokens=64000,
+                    supports_vision=True,
+                    supports_message_batches=True,
+                    training_cutoff=datetime(2025, 2, 19),
+                    description="Our most expressive model",
+                    comparative_latency="Fastest",
+                ),
+                Vendor.ANTHROPIC: AIModel(
+                    name="claude-3-7-sonnet-20250219",
+                    vendor=Vendor.ANTHROPIC,
+                    costs=ModelCosts(
+                        input_cost_per_million_tokens=Decimal("4.0"),
+                        output_cost_per_million_tokens=Decimal("20.0"),
+                    ),
+                    context_window=200000,
+                    max_output_tokens=8192,
+                    supports_vision=True,
+                    supports_message_batches=True,
+                    training_cutoff=datetime(2025, 2, 19),
+                    description="Our most expressive model",
+                    comparative_latency="Fast",
+                ),
+            },
+            "claude-3-5-sonnet-20241022": {
+                Vendor.AWS: AIModel(
+                    name="claude-3-5-sonnet-20241022",
+                    vendor=Vendor.AWS,
+                    costs=ModelCosts(
+                        input_cost_per_million_tokens=Decimal("3.0"),
+                        output_cost_per_million_tokens=Decimal("15.0"),
+                    ),
+                    context_window=200000,
+                    max_output_tokens=8192,
+                    supports_vision=True,
+                    supports_message_batches=True,
+                    training_cutoff=datetime(2024, 4, 1),
+                    description="Our most intelligent model",
+                    comparative_latency="Fast",
+                ),
+                Vendor.ANTHROPIC: AIModel(
+                    name="claude-3-5-sonnet-20241022",
+                    vendor=Vendor.ANTHROPIC,
+                    costs=ModelCosts(
+                        input_cost_per_million_tokens=Decimal("3.0"),
+                        output_cost_per_million_tokens=Decimal("15.0"),
+                    ),
+                    context_window=200000,
+                    max_output_tokens=8192,
+                    supports_vision=True,
+                    supports_message_batches=True,
+                    training_cutoff=datetime(2024, 4, 1),
+                    description="Our most intelligent model",
+                    comparative_latency="Fast",
+                ),
+            },
+            "claude-3-haiku-20240307": {
+                Vendor.ANTHROPIC: AIModel(
+                    name="claude-3-haiku-20240307",
+                    vendor=Vendor.ANTHROPIC,
+                    costs=ModelCosts(
+                        input_cost_per_million_tokens=Decimal("1.0"),
+                        output_cost_per_million_tokens=Decimal("5.0"),
+                    ),
+                    context_window=200000,
+                    max_output_tokens=8192,
+                    supports_vision=False,
+                    supports_message_batches=True,
+                    training_cutoff=datetime(2024, 7, 1),
+                    description="Our fastest model",
+                    comparative_latency="Fastest",
+                ),
+                Vendor.AWS: AIModel(
+                    name="claude-3-haiku-20240307",
+                    vendor=Vendor.AWS,
+                    costs=ModelCosts(
+                        input_cost_per_million_tokens=Decimal("1.0"),
+                        output_cost_per_million_tokens=Decimal("5.0"),
+                    ),
+                    context_window=200000,
+                    max_output_tokens=8192,
+                    supports_vision=False,
+                    supports_message_batches=True,
+                    training_cutoff=datetime(2024, 7, 1),
+                    description="Our fastest model",
+                    comparative_latency="Fastest",
+                ),
+            },
+        }
+
+        # Maintain backwards compatibility: expose a flat dictionary of default
+        # models so existing code (and tests) that iterate over ``available_models``
+        # continues to work.  Anthropic versions are preferred when available.
         self.available_models: Dict[str, AIModel] = {
-            "claude-3-7-sonnet-20250219": AIModel(
-                name="claude-3-7-sonnet-20250219",
-                vendor=Vendor.AWS,
-                costs=ModelCosts(
-                    input_cost_per_million_tokens=Decimal("3.0"),
-                    output_cost_per_million_tokens=Decimal("15.0"),
-                ),
-                context_window=200000,
-                max_output_tokens=64000,
-                supports_vision=True,
-                supports_message_batches=True,
-                training_cutoff=datetime(2025, 2, 19),
-                description="Our most expressive model",
-                comparative_latency="Fastest",
-            ),
-            "claude-3-7-sonnet-20250219": AIModel(
-                name="claude-3-7-sonnet-20250219",
-                vendor=Vendor.ANTHROPIC,
-                costs=ModelCosts(
-                    input_cost_per_million_tokens=Decimal("4.0"),
-                    output_cost_per_million_tokens=Decimal("20.0"),
-                ),
-                context_window=200000,
-                max_output_tokens=8192,
-                supports_vision=True,
-                supports_message_batches=True,
-                training_cutoff=datetime(2025, 2, 19),
-                description="Our most expressive model",
-                comparative_latency="Fast",
-            ),
-            "claude-3-5-sonnet-20241022": AIModel(
-                name="claude-3-5-sonnet-20241022",
-                vendor=Vendor.AWS,
-                costs=ModelCosts(
-                    input_cost_per_million_tokens=Decimal("3.0"),
-                    output_cost_per_million_tokens=Decimal("15.0"),
-                ),
-                context_window=200000,
-                max_output_tokens=8192,
-                supports_vision=True,
-                supports_message_batches=True,
-                training_cutoff=datetime(2024, 4, 1),
-                description="Our most intelligent model",
-                comparative_latency="Fast",
-            ),
-            "claude-3-5-sonnet-20241022": AIModel(
-                name="claude-3-5-sonnet-20241022",
-                vendor=Vendor.ANTHROPIC,
-                costs=ModelCosts(
-                    input_cost_per_million_tokens=Decimal("3.0"),
-                    output_cost_per_million_tokens=Decimal("15.0"),
-                ),
-                context_window=200000,
-                max_output_tokens=8192,
-                supports_vision=True,
-                supports_message_batches=True,
-                training_cutoff=datetime(2024, 4, 1),
-                description="Our most intelligent model",
-                comparative_latency="Fast",
-            ),
-            "claude-3-haiku-20240307": AIModel(
-                name="claude-3-haiku-20240307",
-                vendor=Vendor.ANTHROPIC,
-                costs=ModelCosts(
-                    input_cost_per_million_tokens=Decimal("1.0"),
-                    output_cost_per_million_tokens=Decimal("5.0"),
-                ),
-                context_window=200000,
-                max_output_tokens=8192,
-                supports_vision=False,
-                supports_message_batches=True,
-                training_cutoff=datetime(2024, 7, 1),
-                description="Our fastest model",
-                comparative_latency="Fastest",
-            ),
-            "claude-3-haiku-20240307": AIModel(
-                name="claude-3-haiku-20240307",
-                vendor=Vendor.AWS,
-                costs=ModelCosts(
-                    input_cost_per_million_tokens=Decimal("1.0"),
-                    output_cost_per_million_tokens=Decimal("5.0"),
-                ),
-                context_window=200000,
-                max_output_tokens=8192,
-                supports_vision=False,
-                supports_message_batches=True,
-                training_cutoff=datetime(2024, 7, 1),
-                description="Our fastest model",
-                comparative_latency="Fastest",
-            ),
+            name: models.get(Vendor.ANTHROPIC, next(iter(models.values())))
+            for name, models in self._models_by_vendor.items()
         }
 
     # TODO: This should be part of the client adapter, not part of the model.
@@ -253,11 +272,23 @@ class SupportedModels:
         model_id = self.get_vendor_model_id(model_name, Vendor.AWS)
         return f"arn:aws:bedrock:{region}:{account_id}:inference-profile/{region_prefix}.{model_id}"
 
-    def get_model(self, model_name: str) -> AIModel:
-        """Get a model by name."""
-        if model_name not in self.available_models:
+    def get_model(self, model_name: str, vendor: Optional[Vendor] = None) -> AIModel:
+        """Get a model by name and optional vendor."""
+        if model_name not in self._models_by_vendor:
             raise ValueError(f"Model '{model_name}' not found")
-        return self.available_models[model_name]
+
+        models = self._models_by_vendor[model_name]
+
+        if vendor is None:
+            # Default to the Anthropic version when available
+            return models.get(Vendor.ANTHROPIC, next(iter(models.values())))
+
+        if vendor not in models:
+            raise ValueError(
+                f"Model '{model_name}' not supported for vendor {vendor.value}"
+            )
+
+        return models[vendor]
 
     def get_vendor_model_id(self, model_name: str, vendor: Vendor) -> str:
         """
@@ -293,18 +324,25 @@ class SupportedModels:
         )
 
     def resolve_model_id(self, model_id: str, vendor: Vendor) -> str:
-        """
-        Resolve a model identifier to its vendor-specific form.
+        """Resolve ``model_id`` to the vendor-specific identifier for ``vendor``.
 
-        This method handles both canonical names and vendor-specific IDs.
+        ``model_id`` may already be a vendor specific ID or a canonical name.
 
         Args:
-            model_id (str): The model identifier to resolve
-            vendor (Vendor): The target vendor
+            model_id: Identifier to resolve. Can be canonical or vendor specific.
+            vendor: The vendor for which the ID should be resolved.
 
         Returns:
-            str: The vendor-specific model identifier
+            The vendor-specific identifier.
         """
+
+        # If ``model_id`` already matches a known vendor specific ID for the
+        # requested vendor, return it unchanged.
+        for mapping in self._model_mappings.values():
+            if mapping.vendor_ids.get(vendor) == model_id:
+                return model_id
+
+        # Otherwise treat ``model_id`` as a canonical name and resolve normally.
         return self.get_vendor_model_id(model_id, vendor)
 
     def resolve_model_name_and_vendor(
