@@ -155,3 +155,23 @@ class TestModelSelectionScenarios:
             "claude-3-haiku-20240307", Vendor.ANTHROPIC
         )
         assert anthropic_id == "claude-3-haiku-20240307"
+
+    def test_resolve_model_id_with_vendor_specific_id(self):
+        """Vendor specific IDs should resolve to themselves."""
+        models = SupportedModels()
+
+        aws_specific = "anthropic.claude-3-haiku-20240307-v1:0"
+        resolved = models.resolve_model_id(aws_specific, Vendor.AWS)
+        assert resolved == aws_specific
+
+    def test_get_model_by_specific_vendor(self):
+        """Ensure vendor-specific model instances can be retrieved."""
+        models = SupportedModels()
+
+        aws_model = models.get_model("claude-3-7-sonnet-20250219", Vendor.AWS)
+        anthropic_model = models.get_model(
+            "claude-3-7-sonnet-20250219", Vendor.ANTHROPIC
+        )
+
+        assert aws_model.vendor == Vendor.AWS
+        assert anthropic_model.vendor == Vendor.ANTHROPIC
