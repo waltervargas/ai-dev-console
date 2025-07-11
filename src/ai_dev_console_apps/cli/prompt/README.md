@@ -1,5 +1,7 @@
 # ai-prompt
 
+Run `ai-prompt --help` to see the available options and environment variables to set.
+
 ## Usage
 
 ```bash
