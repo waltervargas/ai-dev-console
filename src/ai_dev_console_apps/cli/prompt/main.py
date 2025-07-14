@@ -13,6 +13,7 @@ from ai_dev_console.models import (
     Vendor,
 )
 
+
 def parse_arguments(args: Optional[List[str]] = None) -> argparse.Namespace:
     """Parse command-line arguments for the AI prompt tool."""
     parser = argparse.ArgumentParser(

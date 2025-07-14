@@ -246,7 +246,9 @@ class AWSAdapter(VendorAdapter):
                     content_blocks.append(
                         ContentBlock(
                             thinking={
-                                "text": content["reasoningContent"]["reasoningText"]["text"]
+                                "text": content["reasoningContent"]["reasoningText"][
+                                    "text"
+                                ]
                             }
                         )
                     )

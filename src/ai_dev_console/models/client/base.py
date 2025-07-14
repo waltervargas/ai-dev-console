@@ -20,6 +20,7 @@ from ..vendor import Vendor
 from .adapters import VendorAdapter
 from .types import ConverseRequest, ConverseResponse
 
+
 class ModelClient(ABC):
     """Abstract base class for model clients."""
 
