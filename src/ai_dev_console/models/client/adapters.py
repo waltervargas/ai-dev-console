@@ -196,7 +196,7 @@ class AWSAdapter(VendorAdapter):
             "messages": messages,
         }
 
-        # Add system message if provided
+        # Add a system message if provided
         if request.system:
             adapted["system"] = [{"text": request.system}]
 
@@ -233,26 +233,25 @@ class AWSAdapter(VendorAdapter):
     def adapt_response(self, response: Dict[str, Any]) -> ConverseResponse:
         """Convert vendor-specific response to our format."""
         messages = []
+        msg = response["output"]["message"]
 
-        for msg in response["messages"]:
+        for content in msg["content"]:
             content_blocks = []
-
-            for block in msg["content"]:
-                # Handle text blocks
-                if "text" in block:
-                    content_blocks.append(ContentBlock(text=block["text"]))
-                # Handle reasoning/thinking content
-                elif "reasoningContent" in block:
-                    if "reasoningText" in block["reasoningContent"]:
-                        content_blocks.append(
-                            ContentBlock(
-                                thinking={
-                                    "text": block["reasoningContent"]["reasoningText"][
-                                        "text"
-                                    ]
-                                }
-                            )
+            # Handle text blocks
+            if "text" in content:
+                content_blocks.append(ContentBlock(text=content["text"]))
+            # Handle reasoning/thinking content
+            elif "reasoningContent" in content:
+                if "reasoningText" in content["reasoningContent"]:
+                    content_blocks.append(
+                        ContentBlock(
+                            thinking={
+                                "text": content["reasoningContent"]["reasoningText"][
+                                    "text"
+                                ]
+                            }
                         )
+                    )
 
             if content_blocks:
                 messages.append(Message(role=Role(msg["role"]), content=content_blocks))

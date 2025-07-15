@@ -26,11 +26,11 @@ Supported Vendors:
     - openai (future)
 
 Environment Variables:
-    ANTHROPIC_API_KEY    API key for Anthropic models
-    AWS_ACCESS_KEY_ID    AWS access key for Bedrock models
-    AWS_SECRET_ACCESS_KEY AWS secret key for Bedrock models
-    AWS_REGION           AWS region for Bedrock models
-    OPENAI_API_KEY       API key for OpenAI models (future)
+    ANTHROPIC_API_KEY - API key for Anthropic models
+    AWS_ACCESS_KEY_ID - AWS access key for Bedrock models
+    AWS_SECRET_ACCESS_KEY - AWS secret key for Bedrock models
+    AWS_DEFAULT_REGION - AWS region for Bedrock models
+    OPENAI_API_KEY API - key for OpenAI models (future)
 
 Examples:
     # Basic usage
